@@ -66,7 +66,7 @@ struct FixedCoreNumVertices{
 
     OPERATOR(Vertex &v){
         id = v.id();
-        if(core_number == curr_coreness){
+        if(core_number[id] == curr_coreness[id]){
             vertex_frontier.insert(id);
         }
     }
@@ -183,8 +183,9 @@ struct DecrementDegree {  // Struct to decrement degrees of every vertex attache
 
 struct UpdateCoreNumber{ // Update the core number of each vertex peeled off in current iteration
     vid_t *core_number;
+    uint32_t peel;
 
-    OPERATOR(Vertex &v, int &peel){
+    OPERATOR(Vertex &v){
         vid_t id = v.id();
         if (vertex_pres[id] == 2){
             core_number[id] = peel;
@@ -291,7 +292,7 @@ void get_core_numbers(HornetGraph &hornet,
                 // Shouldn't this be the peel_queue? If not, why?
                 // Would this be faster if it were peel_queue?
                 forAllVertices(hornet, active_queue, UpdateCoreNumber { vertex_pres });
-                forAllVertices(hornet, active_queue, RemovePres { vertex_pres }); // Why do we never update the active queue? Does this modify its data in some way?
+                forAllVertices(hornet, active_queue, RemovePres { vertex_pres, peel }); // Why do we never update the active queue? Does this modify its data in some way?
         } else {
             forAllEdges(hornet, iter_queue, DecrementDegree { deg }, load_balancing); // Go through vertices in iter_queue and decrement the degree of their nbhrs
         }
