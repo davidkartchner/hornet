@@ -178,11 +178,11 @@ void kcores_new(HornetGraph &hornet,
         
         n_active -= iter_queue.size();
     
-        if (iter_queue.size() == 0) {
+        if (iter_queue.size() == 0) { // if we swap the queue, isn't this size always 0? That would mean that this algorithm is wrong
             peel++;
             peel_queue.swap();
             if (n_active > 0) {
-                forAllVertices(hornet, active_queue, RemovePres { vertex_pres });
+                forAllVertices(hornet, active_queue, RemovePres { vertex_pres }); // wouldn't this be faster if we used the peel queue instead?
             }
         } else {
             forAllEdges(hornet, iter_queue, DecrementDegree { deg }, load_balancing);

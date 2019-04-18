@@ -76,7 +76,7 @@ struct ActiveVertices { // Create data structure to keep track of active vertice
 
 struct FixedCoreNumVertices{
     vid_t *core_number;
-    uint16_t curr_coreness;
+    uint32_t curr_coreness;
     TwoLevelQueue<vid_t> vertex_frontier;
 
     OPERATOR(vertex &v){
@@ -101,7 +101,7 @@ bool check_clique(set<vid_t> *nbhrs, set<vid_t> *curr_clique){
 struct GetLocalClique{
     vid_t *clique_number;
     vid_t *core_number;
-    uint16_t curr_max_size;
+    uint32_t curr_max_size;
     TwoLevelQueue<vid_t> clique_queue;
     
 
@@ -132,10 +132,10 @@ struct GetLocalClique{
                 }
             }
         }
-        uint16_t curr_size = curr_clique.size();
+        uint32_t curr_size = curr_clique.size();
         if (curr_size > curr_max_clique){
             clique_queue.insert(v)
-            clique_sizes[v] = curr_size
+            clique_number[v] = curr_size
             // curr_max_size = curr_size;
         }
         
@@ -155,6 +155,19 @@ struct PeelVertices { // Data structure to keep track of vertices to peel off
             vertex_pres[id] = 2;
             peel_queue.insert(id);
             iter_queue.insert(id);
+        }
+    }
+};
+
+struct CoreRemoveVertices { // Data structure to keep track of vertices to peel off
+    vid_t *vertex_pres;
+    vid_t *core_number;
+    uint32_t peel;
+    
+    OPERATOR(Vertex &v) { // Mark present vertices with insufficicnt degree for peeling
+        vid_t id = v.id();
+        if (vertex_pres[id] >= 1 && core_number[id] < peel) {
+            vertex_pres[id] = 0;
         }
     }
 };
@@ -329,13 +342,29 @@ void max_clique_heuristic(HornetGraph &hornet,
     max_clique_size = 1;
 
     while (max_peel >= max_clique_size & n_active > 0) {
-        forAllVertices(hornet, ActiveQueue, FixedCoreNumVertices{ core_number, max_peel, vertex_frontier });        
+        forAllVertices(hornet, ActiveQueue, FixedCoreNumVertices{ core_number, max_peel, vertex_frontier });   
+        std::cout << "Vertex Frontier Size before swap: " << vertex_frontier.size() << std::endl;     
         vertex_frontier.swap()
+        std::cout << "Vertex Frontier Size after swap: " << vertex_frontier.size() << std::endl;   
         n_active -= vertex_frontier.size();
     
         if (vertex_frontier.size() > 0) {
-             forAllVertices(horhet, vertex_frontier, GetLocalClique{ clique_number, core_number, max_clique_size, clique_queue})
+            // Get clique numbers of vertices of frontier core number
+             forAllVertices(hornet, vertex_frontier, GetLocalClique { clique_number, core_number, max_clique_size, clique_queue});
+             clique_queue.swap();
 
+            if (clique_queue.size() > 0){
+             // Update max_clique_size
+                for (vid_t i=0; i < clique_queue.size(); i++){
+                    if (clique_number[i] > max_clique_size) {
+                        max_clique_size clique_number[i];
+                    }
+                }
+
+                // Remove vertices without sufficiently high core number 
+                peel = max_clique_size; 
+                forAllVertices(hornet, active_queue, CoreRemoveVertices {vertex_pres, core_number, peel})
+            }
         } else {
             forAllEdges(hornet, iter_queue, DecrementDegree { deg }, load_balancing); // Go through vertices in iter_queue and decrement the degree of their nbhrs
         }
