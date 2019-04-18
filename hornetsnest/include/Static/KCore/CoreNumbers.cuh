@@ -17,7 +17,7 @@ public:
     KCore(HornetGraph &hornet);
     ~KCore();
 
-    // void reset()    override;
+    void reset()    override;
     void run()      override;
     void release()  override;
     bool validate() override { return true; }

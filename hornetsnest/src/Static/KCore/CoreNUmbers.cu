@@ -322,7 +322,7 @@ void max_clique_heuristic(HornetGraph &hornet,
     int n_active = active_queue.size();
     uint32_t peel = 0;
     uint32_t curr_clique_size = 1;
-    peel = *max_peel;
+    peel = max_peel;
 
     
     while (peel >= curr_clique_size & n_active > 0) {
@@ -406,9 +406,9 @@ void KCore::run() {
     cudaMemcpy(dst, hd_data().dst, hornet.nV() * sizeof(vid_t), 
                     cudaMemcpyDeviceToHost);
 
-    uint32_t *max_clique_size;
+    uint32_t max_clique_size;
     max_clique_heuristic(hornet, hd_data, peel_vqueue, active_queue, iter_queue, clique_queue, vertex_frontier,
-                       load_balancing, vertex_deg, vertex_pres, vertex_core_number, vertex_clique_number, &max_peel);
+                       load_balancing, vertex_deg, vertex_pres, vertex_core_number, vertex_clique_number, &max_clique_size);
 
 
 
