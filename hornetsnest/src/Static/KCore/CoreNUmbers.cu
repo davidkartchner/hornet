@@ -118,7 +118,7 @@ struct GetLocalClique{
             uint32_t curr_size = curr_clique.size();
             if (curr_size > curr_max_size){
                 clique_queue.insert(id);
-                clique_number[vid] = curr_size;
+                clique_number[id] = curr_size;
                 // curr_max_size = curr_size;
             }
         }
