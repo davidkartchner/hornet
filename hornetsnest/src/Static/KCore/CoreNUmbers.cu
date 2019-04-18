@@ -92,8 +92,8 @@ struct FixedCoreNumVertices{
 
 // Function to check if a we can add a vertex to a clique
 bool check_clique(std::set<vid_t> nbhrs, std::set<vid_t> curr_clique){
-    for (int i=0; i < curr_clique.size(); i++){
-        if (nbhrs.find(curr_clique[i]) == nbhrs.end()){
+    for (std::set<vid_t>::iterator i=curr_clique.begin(); i != curr_clique.end(); ++i){
+        if (nbhrs.find(*i) == nbhrs.end()){
             return false;
         }
     }
@@ -258,12 +258,12 @@ struct DegOneEdges {
     }
 };
 
-void KCore::reset() {  // What does this do?
-    vqueue.swap();
-    peel_vqueue.swap();
-    active_queue.swap();
-    iter_queue.swap();
-}
+// void KCore::reset() {  // What does this do?
+//     vqueue.swap();
+//     peel_vqueue.swap();
+//     active_queue.swap();
+//     iter_queue.swap();
+// }
 
 // Delete all edges in given batch
 void oper_bidirect_batch(HornetGraph &hornet, vid_t *src, vid_t *dst, 
