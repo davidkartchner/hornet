@@ -1,5 +1,5 @@
 #include <Device/Util/Timer.cuh>
-#include "Static/KCore/KCore.cuh"
+#include "Static/KCore/CoreNumbers.cuh"
 #include <fstream>
 #include <set>
 
@@ -25,6 +25,7 @@ KCore::KCore(HornetGraph &hornet) : // Constructor
     gpu::allocate(vertex_color, hornet.nV());
     gpu::allocate(vertex_deg, hornet.nV());
     gpu::allocate(vertex_core_number, hornet.nV()); // Keep track of core numbers of vertices
+    gpu::allocate(vertex_clique_number, hornet.nV()); // Keep track of clique numbers of vertices
     gpu::allocate(hd_data().src,    hornet.nE()); // Allocate space for endpoints of edges and counter
     gpu::allocate(hd_data().dst,    hornet.nE());
     gpu::allocate(hd_data().counter, 1);
@@ -34,7 +35,8 @@ KCore::~KCore() { // Deconstructor, frees up all GPU memory used by algorithm
     gpu::free(vertex_pres);
     gpu::free(vertex_color);
     gpu::free(vertex_deg);
-    gpu::free(vertex_core_number)
+    gpu::free(vertex_core_number);
+    gpu::free(vertex_clique_number); 
     gpu::free(hd_data().src);
     gpu::free(hd_data().dst);
 }
@@ -82,7 +84,7 @@ struct FixedCoreNumVertices{
     OPERATOR(vertex &v){
         id = v.id();
         if(core_number == curr_coreness){
-            vertex_frontier.insert(id)
+            vertex_frontier.insert(id);
         }
     }
 
@@ -134,8 +136,8 @@ struct GetLocalClique{
         }
         uint32_t curr_size = curr_clique.size();
         if (curr_size > curr_max_clique){
-            clique_queue.insert(v)
-            clique_number[v] = curr_size
+            clique_queue.insert(v);
+            clique_number[v] = curr_size;
             // curr_max_size = curr_size;
         }
         
@@ -283,8 +285,7 @@ void get_core_numbers(HornetGraph &hornet,
     vid_t *deg,
     vid_t *vertex_pres,
     vid_t *core_number,
-    uint32_t *max_peel,
-    int *batch_size){
+    uint32_t *max_peel){
 
     
     forAllVertices(hornet, ActiveVertices { vertex_pres, deg, active_queue }); // Get active vertices in parallel (puts in input queue)
@@ -304,12 +305,10 @@ void get_core_numbers(HornetGraph &hornet,
         if (iter_queue.size() == 0) {
             peel++; // Once we have removed all vertices with core <= current peel, increment peel
             peel_queue.swap();
-            // if (n_active > 0) {
                 // Shouldn't this be the peel_queue? If not, why?
                 // Would this be faster if it were peel_queue?
                 forAllVertices(hornet, active_queue, UpdateCoreNumber { vertex_pres });
                 forAllVertices(hornet, active_queue, RemovePres { vertex_pres }); // Why do we never update the active queue? Does this modify its data in some way?
-            // }
         } else {
             forAllEdges(hornet, iter_queue, DecrementDegree { deg }, load_balancing); // Go through vertices in iter_queue and decrement the degree of their nbhrs
         }
@@ -329,11 +328,10 @@ void max_clique_heuristic(HornetGraph &hornet,
     vid_t *vertex_pres,
     vid_t *core_number,
     vid_t *clique_number,
-    uint32_t *max_clique_size,
-    int *batch_size){
+    uint32_t *max_clique_size){
 
-    get_core_numbers(hornet, hd_data, peel_vqueue, active_queue, iter_queue, 
-        load_balancing, vertex_deg, vertex_pres, &core_number, &max_peel, &batch_size);
+    get_core_numbers(hornet, hd, peel_vqueue, active_queue, iter_queue, 
+        load_balancing, vertex_deg, vertex_pres, &core_number, &max_peel);
     // Get active vertices (with clique number > 0)
     forAllVertices(hornet, ActiveVertices { vertex_pres, core_number, active_queue }); // Get active vertices in parallel (puts in input queue)
     active_queue.swap(); // Swap input to output queue
@@ -413,70 +411,76 @@ void KCore::run() {
     Timer<DEVICE> TM;
     TM.start();
 
-    /* Begin degree 1 vertex preprocessing optimization */ 
+    // /* Begin degree 1 vertex preprocessing optimization */ 
 
-    // Find vertices of degree 1.
-    forAllVertices(hornet, GetDegOne { vqueue, vertex_color });
-    vqueue.swap();
+    // // Find vertices of degree 1.
+    // forAllVertices(hornet, GetDegOne { vqueue, vertex_color });
+    // vqueue.swap();
 
-    // Find the edges incident to these vertices.
-    gpu::memsetZero(hd_data().counter);  // reset counter. 
-    forAllEdges(hornet, vqueue, 
-                    DegOneEdges { hd_data, vertex_color }, load_balancing);
+    // // Find the edges incident to these vertices.
+    // gpu::memsetZero(hd_data().counter);  // reset counter. 
+    // forAllEdges(hornet, vqueue, 
+    //                 DegOneEdges { hd_data, vertex_color }, load_balancing);
 
-    // Mark edges with peel 1.
-    int peel_one_count = 0;
-    cudaMemcpy(&peel_one_count, hd_data().counter, sizeof(int), cudaMemcpyDeviceToHost);
-    #pragma omp parallel for
-    for (int i = 0; i < peel_one_count; i++) {
-        peel[i] = 1;
-    }
+    // // Mark edges with peel 1.
+    // int peel_one_count = 0;
+    // cudaMemcpy(&peel_one_count, hd_data().counter, sizeof(int), cudaMemcpyDeviceToHost);
+    // #pragma omp parallel for
+    // for (int i = 0; i < peel_one_count; i++) {
+    //     peel[i] = 1;
+    // }
 
-    cudaMemcpy(src, hd_data().src, peel_one_count * sizeof(vid_t), 
+    cudaMemcpy(src, hd_data().src, hornet.nV() * sizeof(vid_t), 
                     cudaMemcpyDeviceToHost);
-    cudaMemcpy(dst, hd_data().dst, peel_one_count * sizeof(vid_t), 
+    cudaMemcpy(dst, hd_data().dst, hornet.nV() * sizeof(vid_t), 
                     cudaMemcpyDeviceToHost);
 
-    peel_edges = (uint32_t)peel_one_count;
+    uint32_t max_clique_size = 1;
+    max_clique_heuristic(hornet, hd_data, peel_vqueue, active_queue, iter_queue, clique_queue, vertex_frontier,
+                       load_balancing, vertex_deg, vertex_pres, vertex_core_number, vertex_clique_number, &max_peel);
 
-    // Delete peel 1 edges.
-    oper_bidirect_batch(hornet, hd_data().src, hd_data().dst, peel_one_count, DELETE);
+
+
+    // peel_edges = (uint32_t)peel_one_count;
+
+    // // Delete peel 1 edges.
+    // oper_bidirect_batch(hornet, hd_data().src, hd_data().dst, peel_one_count, DELETE);
 
     /* Begin running main kcore algorithm */
-    while (peel_edges < ne) {
-        uint32_t max_peel = 0;
-        int batch_size = 0;
+    // while (peel_edges < ne) {
+    //     uint32_t max_peel = 0;
+    //     int batch_size = 0;
 
-        kcores_new(hornet, hd_data, peel_vqueue, active_queue, iter_queue, 
-                   load_balancing, vertex_deg, vertex_pres, &max_peel, &batch_size);
-        std::cout << "max_peel: " << max_peel << "\n";
+    //     kcores_new(hornet, hd_data, peel_vqueue, active_queue, iter_queue, 
+    //                load_balancing, vertex_deg, vertex_pres, &max_peel, &batch_size);
+    //     std::cout << "max_peel: " << max_peel << "\n";
 
-        if (batch_size > 0) {
-            cudaMemcpy(src + peel_edges, hd_data().src, 
-                       batch_size * sizeof(vid_t), cudaMemcpyDeviceToHost);
+    //     if (batch_size > 0) {
+    //         cudaMemcpy(src + peel_edges, hd_data().src, 
+    //                    batch_size * sizeof(vid_t), cudaMemcpyDeviceToHost);
 
-            cudaMemcpy(dst + peel_edges, hd_data().dst, 
-                       batch_size * sizeof(vid_t), cudaMemcpyDeviceToHost);
+    //         cudaMemcpy(dst + peel_edges, hd_data().dst, 
+    //                    batch_size * sizeof(vid_t), cudaMemcpyDeviceToHost);
 
-            #pragma omp parallel for
-            for (int i = 0; i < batch_size; i++) {
-                peel[peel_edges + i] = max_peel;
-            }
+    //         #pragma omp parallel for
+    //         for (int i = 0; i < batch_size; i++) {
+    //             peel[peel_edges + i] = max_peel;
+    //         }
 
-            peel_edges += batch_size;
-        }
-        oper_bidirect_batch(hornet, hd_data().src, hd_data().dst, batch_size, DELETE);
-    }
+    //         peel_edges += batch_size;
+    //     }
+    //     oper_bidirect_batch(hornet, hd_data().src, hd_data().dst, batch_size, DELETE);
+    // }
     TM.stop();
     TM.print("KCore");
-    json_dump(src, dst, peel, peel_edges);
 }
 
 void KCore::release() {
     gpu::free(vertex_pres);
     gpu::free(vertex_color);
     gpu::free(vertex_deg);
-    gpu::free(vertex_core_number)
+    gpu::free(vertex_core_number);
+    gpu::free(vertex_clique_number); 
     gpu::free(hd_data().src);
     gpu::free(hd_data().dst);
     hd_data().src = nullptr;
