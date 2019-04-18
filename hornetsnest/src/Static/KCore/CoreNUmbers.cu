@@ -59,23 +59,6 @@ struct ActiveVertices { // Create data structure to keep track of active vertice
     }
 };
 
-// struct CliqueActiveVertices{
-//     vid_t *vertex_pres;
-//     vid_t *core_number;
-//     TwoLevelQueue<vid_t> clique_active_queue;
-
-//     OPERATOR(vertex &v){
-//         vid_t id = v.id();
-//         if (core_number[id] >= 0){
-//             vertex_pres[id] = 1;
-//             clique_active_queue.insert(id);
-//         }
-//         else{
-//             vertex_pres[id] = 0;
-//         }
-//     }
-// }
-
 struct FixedCoreNumVertices{
     vid_t *core_number;
     uint32_t curr_coreness;
@@ -133,6 +116,7 @@ struct GetLocalClique{
                     curr_clique.insert(id);
                 }
             }
+        }
         uint32_t curr_size = curr_clique.size();
         if (curr_size > curr_max_clique){
             clique_queue.insert(v);
@@ -258,12 +242,12 @@ struct DegOneEdges {
     }
 };
 
-// void KCore::reset() {  // What does this do?
-//     vqueue.swap();
-//     peel_vqueue.swap();
-//     active_queue.swap();
-//     iter_queue.swap();
-// }
+void KCore::reset() {  // What does this do?
+    vqueue.swap();
+    peel_vqueue.swap();
+    active_queue.swap();
+    iter_queue.swap();
+}
 
 // Delete all edges in given batch
 void oper_bidirect_batch(HornetGraph &hornet, vid_t *src, vid_t *dst, 
@@ -338,14 +322,13 @@ void max_clique_heuristic(HornetGraph &hornet,
     int n_active = active_queue.size();
     uint32_t peel = 0;
     uint32_t curr_clique_size = 1;
-    int peel = 0;
-    *peel = max_peel;
+    peel = *max_peel;
 
     
     while (peel >= curr_clique_size & n_active > 0) {
-        forAllVertices(hornet, ActiveQueue, FixedCoreNumVertices{ core_number, peel, vertex_frontier });   
+        forAllVertices(hornet, active_queue, FixedCoreNumVertices{ core_number, peel, vertex_frontier });   
         std::cout << "Vertex Frontier Size before swap: " << vertex_frontier.size() << std::endl;     
-        vertex_frontier.swap()
+        vertex_frontier.swap();
         std::cout << "Vertex Frontier Size after swap: " << vertex_frontier.size() << std::endl;   
         n_active -= vertex_frontier.size();
     
@@ -371,27 +354,11 @@ void max_clique_heuristic(HornetGraph &hornet,
         }
         peel--;
     }
-    max_clique_size = *curr_clique_size;
+    *max_clique_size = curr_clique_size;
     std::cout << "Max Clique Found: " << max_clique_size << std::endl;
 }
 
 
-// I think this writes the peel of all of the edges to a json file
-void json_dump(vid_t *src, vid_t *dst, uint32_t *peel, uint32_t peel_edges) {
-    std::ofstream output_file;
-    output_file.open("output.txt");
-    
-    output_file << "{\n";
-    for (uint32_t i = 0; i < peel_edges; i++) {
-        output_file << "\"" << src[i] << "," << dst[i] << "\": " << peel[i];
-        if (i < peel_edges - 1) {
-            output_file << ",";
-        }
-        output_file << "\n";
-    }
-    output_file << "}";
-    output_file.close();
-}
 
 void KCore::run() {
     omp_set_num_threads(72);
