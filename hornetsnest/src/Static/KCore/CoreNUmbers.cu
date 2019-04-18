@@ -81,14 +81,14 @@ struct FixedCoreNumVertices{
     uint32_t curr_coreness;
     TwoLevelQueue<vid_t> vertex_frontier;
 
-    OPERATOR(vertex &v){
+    OPERATOR(Vertex &v){
         id = v.id();
         if(core_number == curr_coreness){
             vertex_frontier.insert(id);
         }
     }
 
-}
+};
 
 // Function to check if a we can add a vertex to a clique
 bool check_clique(set<vid_t> *nbhrs, set<vid_t> *curr_clique){
@@ -142,7 +142,7 @@ struct GetLocalClique{
         }
         
     }
-}
+};
 
 struct PeelVertices { // Data structure to keep track of vertices to peel off
     vid_t *vertex_pres;
@@ -207,7 +207,7 @@ struct UpdateCoreNumber{ // Update the core number of each vertex peeled off in 
             core_number[id] = peel;
         } 
     }
-}
+};
 
 struct ExtractSubgraph { // Struct to extract subgraph of vertices that get peeled off?  (Why not the other way around?)
     HostDeviceVar<KCoreData> hd;
