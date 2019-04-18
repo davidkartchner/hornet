@@ -92,7 +92,7 @@ struct FixedCoreNumVertices{
 
 // Function to check if a we can add a vertex to a clique
 bool check_clique(std::set<vid_t> nbhrs, std::set<vid_t> curr_clique){
-    for (vid_t i=0; i < curr_clique.size(); i++){
+    for (int i=0; i < curr_clique.size(); i++){
         if (nbhrs.find(curr_clique[i]) == nbhrs.end()){
             return false;
         }
@@ -355,9 +355,9 @@ void max_clique_heuristic(HornetGraph &hornet,
 
             if (clique_queue.size() > 0){
              // Update curr_clique_size
-                for (vid_t i=0; i < clique_queue.size(); i++){
+                for (int i=0; i < clique_queue.size(); i++){
                     if (clique_number[i] > curr_clique_size) {
-                        curr_clique_size clique_number[i];
+                        curr_clique_size = clique_number[i];
                     }
                 }
 
