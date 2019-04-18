@@ -66,7 +66,7 @@ struct FixedCoreNumVertices{
 
     OPERATOR(Vertex &v){
         vid_t id = v.id();
-        if(core_number[id] == curr_coreness[id]){
+        if(core_number[id] == curr_coreness){
             vertex_frontier.insert(id);
         }
     }
@@ -94,7 +94,6 @@ struct GetLocalClique{
         // construct std::set of neighbors of current vertex
         std::set<vid_t> curr_clique;
         curr_clique.insert(v.id());
-        int clique_size = 1;
 
         // Make sure vertex has coreness >= max_clique_size before inserting
         for (degree_t i=0; i<v.degree(); i++){
@@ -116,14 +115,13 @@ struct GetLocalClique{
                     curr_clique.insert(id);
                 }
             }
+            uint32_t curr_size = curr_clique.size();
+            if (curr_size > curr_max_size){
+                clique_queue.insert(id);
+                clique_number[vid] = curr_size;
+                // curr_max_size = curr_size;
+            }
         }
-        uint32_t curr_size = curr_clique.size();
-        if (curr_size > curr_max_size){
-            clique_queue.insert(v);
-            clique_number[v] = curr_size;
-            // curr_max_size = curr_size;
-        }
-        
     }
 };
 
