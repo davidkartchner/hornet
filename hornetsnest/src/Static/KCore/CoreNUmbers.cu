@@ -363,13 +363,14 @@ void max_clique_heuristic(HornetGraph &hornet,
 
                 // Remove vertices without sufficiently high core number 
                 peel = max_clique_size; 
-                forAllVertices(hornet, active_queue, CoreRemoveVertices {vertex_pres, core_number, peel})
+                forAllVertices(hornet, active_queue, CoreRemoveVertices {vertex_pres, core_number, peel});
             }
         } else {
             forAllEdges(hornet, iter_queue, DecrementDegree { deg }, load_balancing); // Go through vertices in iter_queue and decrement the degree of their nbhrs
         }
         max_peel--;
     }
+    std::cout << "Max Clique Found: " << max_clique_size << std::endl;
 }
 
 
