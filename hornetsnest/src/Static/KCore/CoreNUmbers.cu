@@ -92,7 +92,7 @@ struct FixedCoreNumVertices{
 
 // Function to check if a we can add a vertex to a clique
 bool check_clique(std::set<vid_t> *nbhrs, std::set<vid_t> *curr_clique){
-    for (i=0; i < curr_clique.size(); i++){
+    for (int i=0; i < curr_clique.size(); i++){
         if (nbhrs.find(curr_clique[i]) == nbhrs.end()){
             return false;
         }
@@ -107,7 +107,7 @@ struct GetLocalClique{
     TwoLevelQueue<vid_t> clique_queue;
     
 
-    OPERATOR(vertex &v){
+    OPERATOR(Vertex &v){
         // construct std::set of neighbors of current vertex
         std::set<vid_t> *curr_clique;
         curr_clique.insert(v.id());
