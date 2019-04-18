@@ -1,6 +1,7 @@
 #include <Device/Util/Timer.cuh>
 #include "Static/KCore/KCore.cuh"
 #include <fstream>
+#include <set>
 
 #include <nvToolsExt.h>
 
@@ -15,12 +16,15 @@ KCore::KCore(HornetGraph &hornet) : // Constructor
                         peel_vqueue(hornet),
                         active_queue(hornet),
                         iter_queue(hornet),
+                        vertex_frontier(hornet),
+                        clique_queue(hornet),
                         load_balancing(hornet)
                         {
 
     gpu::allocate(vertex_pres, hornet.nV()); // Creates arrays of length n for whether vertices are present, their current degree, and their color
     gpu::allocate(vertex_color, hornet.nV());
     gpu::allocate(vertex_deg, hornet.nV());
+    gpu::allocate(vertex_core_number, hornet.nV()); // Keep track of core numbers of vertices
     gpu::allocate(hd_data().src,    hornet.nE()); // Allocate space for endpoints of edges and counter
     gpu::allocate(hd_data().dst,    hornet.nE());
     gpu::allocate(hd_data().counter, 1);
@@ -30,6 +34,7 @@ KCore::~KCore() { // Deconstructor, frees up all GPU memory used by algorithm
     gpu::free(vertex_pres);
     gpu::free(vertex_color);
     gpu::free(vertex_deg);
+    gpu::free(vertex_core_number)
     gpu::free(hd_data().src);
     gpu::free(hd_data().dst);
 }
@@ -52,6 +57,91 @@ struct ActiveVertices { // Create data structure to keep track of active vertice
     }
 };
 
+// struct CliqueActiveVertices{
+//     vid_t *vertex_pres;
+//     vid_t *core_number;
+//     TwoLevelQueue<vid_t> clique_active_queue;
+
+//     OPERATOR(vertex &v){
+//         vid_t id = v.id();
+//         if (core_number[id] >= 0){
+//             vertex_pres[id] = 1;
+//             clique_active_queue.insert(id);
+//         }
+//         else{
+//             vertex_pres[id] = 0;
+//         }
+//     }
+// }
+
+struct FixedCoreNumVertices{
+    vid_t *core_number;
+    uint16_t curr_coreness;
+    TwoLevelQueue<vid_t> vertex_frontier;
+
+    OPERATOR(vertex &v){
+        id = v.id();
+        if(core_number == curr_coreness){
+            vertex_frontier.insert(id)
+        }
+    }
+
+}
+
+// Function to check if a we can add a vertex to a clique
+bool check_clique(set<vid_t> *nbhrs, set<vid_t> *curr_clique){
+    for (i=0; i < curr_clique.size(); i++){
+        if (nbhrs.find(curr_clique[i]) == nbhrs.end()){
+            return false;
+        }
+    }
+    return true;
+}
+
+struct GetLocalClique{
+    vid_t *clique_number;
+    vid_t *core_number;
+    uint16_t curr_max_size;
+    TwoLevelQueue<vid_t> clique_queue;
+    
+
+    OPERATOR(vertex &v){
+        // construct set of neighbors of current vertex
+        set *curr_clique<vid_t>;
+        curr_clique.insert(v.id());
+        int clique_size = 1;
+
+        // Make sure vertex has coreness >= max_clique_size before inserting
+        for (degree_t i=0; i<v.degree(); i++){
+            u = v.edge(i).dst();
+            vid_t id = u.id();
+            set *nbhrs<vid_t>;
+
+            // Check if nbhrs with coreness >= max_clique_size are part of a clique
+            if (core_number[id] >= curr_max_clique){
+                #pragma omp parallel for
+                for (degree_t j=0; j<u.degree(); j++){
+                    curr_nbhr_id = u.neighbor_id(j);
+
+                    if (core_number[curr_nbhr_id] >= curr_max_clique){
+                        nbhrs.insert(curr_nbhr_id);
+                    } 
+                }
+                if (check_clique(&nbhrs, &curr_clique)){
+                    curr_clique.insert(id);
+                }
+            }
+        }
+        uint16_t curr_size = curr_clique.size();
+        if (curr_size > curr_max_clique){
+            clique_queue.insert(v)
+            clique_sizes[v] = curr_size
+            // curr_max_size = curr_size;
+        }
+        
+    }
+}
+
 struct PeelVertices { // Data structure to keep track of vertices to peel off
     vid_t *vertex_pres;
     vid_t *deg;
@@ -68,6 +158,8 @@ struct PeelVertices { // Data structure to keep track of vertices to peel off
         }
     }
 };
+
+
 
 struct RemovePres { // Struct to remove vertices marked by PeelVertices
     vid_t *vertex_pres;
@@ -169,7 +261,7 @@ void oper_bidirect_batch(HornetGraph &hornet, vid_t *src, vid_t *dst,
     hornet.deleteEdgeBatch(batch_update, gpu::batch_property::IN_PLACE); // What do you mean "in forward and backward directions?"
 }
 
-void core_numbers_new(HornetGraph &hornet, 
+void get_core_numbers(HornetGraph &hornet, 
     HostDeviceVar<KCoreData>& hd, 
     TwoLevelQueue<vid_t> &peel_queue,
     TwoLevelQueue<vid_t> &active_queue,
@@ -202,12 +294,52 @@ void core_numbers_new(HornetGraph &hornet,
             // if (n_active > 0) {
                 // Shouldn't this be the peel_queue? If not, why?
                 // Would this be faster if it were peel_queue?
-                forAllVertices(hornet, active_queue, RemovePres { vertex_pres });
+                forAllVertices(hornet, active_queue, UpdateCoreNumber { vertex_pres });
                 forAllVertices(hornet, active_queue, RemovePres { vertex_pres }); // Why do we never update the active queue? Does this modify its data in some way?
             // }
         } else {
             forAllEdges(hornet, iter_queue, DecrementDegree { deg }, load_balancing); // Go through vertices in iter_queue and decrement the degree of their nbhrs
         }
+    }
+}
+
+
+void max_clique_heuristic(HornetGraph &hornet,
+    HostDeviceVar<KCoreData>& hd, 
+    TwoLevelQueue<vid_t> &peel_queue,
+    TwoLevelQueue<vid_t> &active_queue,
+    TwoLevelQueue<vid_t> &iter_queue,
+    TwoLevelQueue<vid_t> &clique_queue,
+    TwoLevelQueue<vid_t> &vertex_frontier,
+    load_balancing::VertexBased1 load_balancing,
+    vid_t *deg,
+    vid_t *vertex_pres,
+    vid_t *core_number,
+    vid_t *clique_number,
+    uint32_t *max_clique_size,
+    int *batch_size){
+
+    get_core_numbers(hornet, hd_data, peel_vqueue, active_queue, iter_queue, 
+        load_balancing, vertex_deg, vertex_pres, &core_number, &max_peel, &batch_size);
+    // Get active vertices (with clique number > 0)
+    forAllVertices(hornet, ActiveVertices { vertex_pres, core_number, active_queue }); // Get active vertices in parallel (puts in input queue)
+    active_queue.swap(); // Swap input to output queue
+    int n_active = active_queue.size();
+    uint32_t peel = 0;
+    max_clique_size = 1;
+
+    while (max_peel >= max_clique_size & n_active > 0) {
+        forAllVertices(hornet, ActiveQueue, FixedCoreNumVertices{ core_number, max_peel, vertex_frontier });        
+        vertex_frontier.swap()
+        n_active -= vertex_frontier.size();
+    
+        if (vertex_frontier.size() > 0) {
+             forAllVertices(horhet, vertex_frontier, GetLocalClique{ clique_number, core_number, max_clique_size, clique_queue})
+
+        } else {
+            forAllEdges(hornet, iter_queue, DecrementDegree { deg }, load_balancing); // Go through vertices in iter_queue and decrement the degree of their nbhrs
+        }
+        max_peel--;
     }
 }
 
@@ -314,6 +446,7 @@ void KCore::release() {
     gpu::free(vertex_pres);
     gpu::free(vertex_color);
     gpu::free(vertex_deg);
+    gpu::free(vertex_core_number)
     gpu::free(hd_data().src);
     gpu::free(hd_data().dst);
     hd_data().src = nullptr;

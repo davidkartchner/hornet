@@ -23,6 +23,8 @@ public:
     bool validate() override { return true; }
     void set_hcopy(HornetGraph *h_copy);
     void get_core_numbers() override;
+    void max_clique_heuristic() override;
+    
 
 private:
     HostDeviceVar<KCoreData> hd_data;
