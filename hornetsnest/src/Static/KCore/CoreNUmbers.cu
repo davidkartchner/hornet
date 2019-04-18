@@ -92,7 +92,7 @@ struct FixedCoreNumVertices{
 
 // Function to check if a we can add a vertex to a clique
 bool check_clique(std::set<vid_t> *nbhrs, std::set<vid_t> *curr_clique){
-    for (int i=0; i < curr_clique.size(); i++){
+    for (vid_t i=0; i < curr_clique.size(); i++){
         if (nbhrs.find(curr_clique[i]) == nbhrs.end()){
             return false;
         }
