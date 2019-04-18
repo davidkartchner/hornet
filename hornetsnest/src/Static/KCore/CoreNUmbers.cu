@@ -329,8 +329,9 @@ void max_clique_heuristic(HornetGraph &hornet,
     vid_t *clique_number,
     uint32_t *max_clique_size){
 
-    get_core_numbers(hornet, hd, peel_vqueue, active_queue, iter_queue, 
-        load_balancing, vertex_deg, vertex_pres, &core_number, &max_peel);
+    uint32_t max_peel = 0;
+    get_core_numbers(hornet, hd, peel_queue, active_queue, iter_queue, 
+        load_balancing, deg, vertex_pres, core_number, &max_peel);
     // Get active vertices (with clique number > 0)
     forAllVertices(hornet, ActiveVertices { vertex_pres, core_number, active_queue }); // Get active vertices in parallel (puts in input queue)
     active_queue.swap(); // Swap input to output queue
