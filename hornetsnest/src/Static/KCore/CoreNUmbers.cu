@@ -91,7 +91,7 @@ struct FixedCoreNumVertices{
 };
 
 // Function to check if a we can add a vertex to a clique
-bool check_clique(set<vid_t> *nbhrs, set<vid_t> *curr_clique){
+bool check_clique(std::set<vid_t> *nbhrs, std::set<vid_t> *curr_clique){
     for (i=0; i < curr_clique.size(); i++){
         if (nbhrs.find(curr_clique[i]) == nbhrs.end()){
             return false;
@@ -108,8 +108,8 @@ struct GetLocalClique{
     
 
     OPERATOR(vertex &v){
-        // construct set of neighbors of current vertex
-        set *curr_clique<vid_t>;
+        // construct std::set of neighbors of current vertex
+        std::set<vid_t> *curr_clique;
         curr_clique.insert(v.id());
         int clique_size = 1;
 
@@ -117,7 +117,7 @@ struct GetLocalClique{
         for (degree_t i=0; i<v.degree(); i++){
             u = v.edge(i).dst();
             vid_t id = u.id();
-            set *nbhrs<vid_t>;
+            std::set<vid_t> *nbhrs;
 
             // Check if nbhrs with coreness >= max_clique_size are part of a clique
             if (core_number[id] >= curr_max_clique){
@@ -133,7 +133,6 @@ struct GetLocalClique{
                     curr_clique.insert(id);
                 }
             }
-        }
         uint32_t curr_size = curr_clique.size();
         if (curr_size > curr_max_clique){
             clique_queue.insert(v);
