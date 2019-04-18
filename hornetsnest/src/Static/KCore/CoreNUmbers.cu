@@ -91,7 +91,7 @@ struct FixedCoreNumVertices{
 };
 
 // Function to check if a we can add a vertex to a clique
-bool check_clique(std::set<vid_t> *nbhrs, std::set<vid_t> *curr_clique){
+bool check_clique(std::set<vid_t> nbhrs, std::set<vid_t> curr_clique){
     for (vid_t i=0; i < curr_clique.size(); i++){
         if (nbhrs.find(curr_clique[i]) == nbhrs.end()){
             return false;
@@ -336,10 +336,13 @@ void max_clique_heuristic(HornetGraph &hornet,
     active_queue.swap(); // Swap input to output queue
     int n_active = active_queue.size();
     uint32_t peel = 0;
-    max_clique_size = 1;
+    uint32_t curr_clique_size = 1;
+    int peel = 0;
+    *peel = max_peel;
 
-    while (max_peel >= max_clique_size & n_active > 0) {
-        forAllVertices(hornet, ActiveQueue, FixedCoreNumVertices{ core_number, max_peel, vertex_frontier });   
+    
+    while (peel >= curr_clique_size & n_active > 0) {
+        forAllVertices(hornet, ActiveQueue, FixedCoreNumVertices{ core_number, peel, vertex_frontier });   
         std::cout << "Vertex Frontier Size before swap: " << vertex_frontier.size() << std::endl;     
         vertex_frontier.swap()
         std::cout << "Vertex Frontier Size after swap: " << vertex_frontier.size() << std::endl;   
@@ -347,26 +350,27 @@ void max_clique_heuristic(HornetGraph &hornet,
     
         if (vertex_frontier.size() > 0) {
             // Get clique numbers of vertices of frontier core number
-             forAllVertices(hornet, vertex_frontier, GetLocalClique { clique_number, core_number, max_clique_size, clique_queue});
+             forAllVertices(hornet, vertex_frontier, GetLocalClique { clique_number, core_number, curr_clique_size, clique_queue});
              clique_queue.swap();
 
             if (clique_queue.size() > 0){
-             // Update max_clique_size
+             // Update curr_clique_size
                 for (vid_t i=0; i < clique_queue.size(); i++){
-                    if (clique_number[i] > max_clique_size) {
-                        max_clique_size clique_number[i];
+                    if (clique_number[i] > curr_clique_size) {
+                        curr_clique_size clique_number[i];
                     }
                 }
 
                 // Remove vertices without sufficiently high core number 
-                peel = max_clique_size; 
+                peel = curr_clique_size; 
                 forAllVertices(hornet, active_queue, CoreRemoveVertices {vertex_pres, core_number, peel});
             }
         } else {
             forAllEdges(hornet, iter_queue, DecrementDegree { deg }, load_balancing); // Go through vertices in iter_queue and decrement the degree of their nbhrs
         }
-        max_peel--;
+        peel--;
     }
+    max_clique_size = *curr_clique_size;
     std::cout << "Max Clique Found: " << max_clique_size << std::endl;
 }
 
@@ -434,7 +438,7 @@ void KCore::run() {
     cudaMemcpy(dst, hd_data().dst, hornet.nV() * sizeof(vid_t), 
                     cudaMemcpyDeviceToHost);
 
-    uint32_t max_clique_size = 1;
+    uint32_t *max_clique_size;
     max_clique_heuristic(hornet, hd_data, peel_vqueue, active_queue, iter_queue, clique_queue, vertex_frontier,
                        load_balancing, vertex_deg, vertex_pres, vertex_core_number, vertex_clique_number, &max_peel);
 
