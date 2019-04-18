@@ -27,7 +27,7 @@ add_library(hornetAlg ${CU_SRCS})
 
 
 add_executable(kcore      test/KCoreTest.cu)
-add_executable(corenum    test/CoreNumbersTest.cu)
+add_executable(corenum    test/CoreNumbers.cu)
 
 target_link_libraries(kcore      hornetAlg hornet)
 target_link_libraries(corenum    hornetAlg hornet)
