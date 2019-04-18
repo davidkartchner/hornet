@@ -65,7 +65,7 @@ struct FixedCoreNumVertices{
     TwoLevelQueue<vid_t> vertex_frontier;
 
     OPERATOR(Vertex &v){
-        id = v.id();
+        vid_t id = v.id();
         if(core_number[id] == curr_coreness[id]){
             vertex_frontier.insert(id);
         }
@@ -92,33 +92,33 @@ struct GetLocalClique{
 
     OPERATOR(Vertex &v){
         // construct std::set of neighbors of current vertex
-        std::set<vid_t> *curr_clique;
+        std::set<vid_t> curr_clique;
         curr_clique.insert(v.id());
         int clique_size = 1;
 
         // Make sure vertex has coreness >= max_clique_size before inserting
         for (degree_t i=0; i<v.degree(); i++){
-            u = v.edge(i).dst();
+            Vertex u = v.edge(i).dst();
             vid_t id = u.id();
-            std::set<vid_t> *nbhrs;
+            std::set<vid_t> nbhrs;
 
             // Check if nbhrs with coreness >= max_clique_size are part of a clique
-            if (core_number[id] >= curr_max_clique){
+            if (core_number[id] >= curr_max_size){
                 #pragma omp parallel for
                 for (degree_t j=0; j<u.degree(); j++){
-                    curr_nbhr_id = u.neighbor_id(j);
+                    vid_t curr_nbhr_id = u.neighbor_id(j);
 
-                    if (core_number[curr_nbhr_id] >= curr_max_clique){
+                    if (core_number[curr_nbhr_id] >= curr_max_size){
                         nbhrs.insert(curr_nbhr_id);
                     } 
                 }
-                if (check_clique(&nbhrs, &curr_clique)){
+                if (check_clique(nbhrs, curr_clique)){
                     curr_clique.insert(id);
                 }
             }
         }
         uint32_t curr_size = curr_clique.size();
-        if (curr_size > curr_max_clique){
+        if (curr_size > curr_max_size){
             clique_queue.insert(v);
             clique_number[v] = curr_size;
             // curr_max_size = curr_size;
