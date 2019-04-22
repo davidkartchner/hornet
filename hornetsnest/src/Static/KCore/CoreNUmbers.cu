@@ -326,7 +326,7 @@ void get_core_numbers(HornetGraph &hornet,
     active_queue.swap(); // Swap input to output queue
 
     int n_active = active_queue.size();
-    uint32_t *peel = 0;
+    uint32_t peel = 0;
 
     while (n_active > 0) {
         // Why do we use a particular queue in forAllVertices?  Does it go through all vertices in this queue?
@@ -394,7 +394,8 @@ void KCore::run() {
     uint32_t ne = hornet.nE();
     std::cout << "ne: " << ne << std::endl;
     // uint32_t max_clique_size = new uint32_t;
-    max_clique_size = 1;
+    max_clique_size = (uint32_t)1;
+    
 
 
     auto pres = vertex_pres;
