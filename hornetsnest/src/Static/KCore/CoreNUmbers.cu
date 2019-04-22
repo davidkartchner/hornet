@@ -436,7 +436,7 @@ void KCore::run() {
 
 
     // Get vertex core numbers
-    uint32_t peel = 0;
+    uint32_t *peel = 0;
     get_core_numbers(hornet, peel_vqueue, active_queue, iter_queue, 
         load_balancing, deg, vertex_pres, core_number, &peel);
     gpu::memsetZero(hd_data().counter);
