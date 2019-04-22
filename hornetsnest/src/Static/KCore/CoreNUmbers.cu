@@ -28,7 +28,7 @@ KCore::KCore(HornetGraph &hornet) : // Constructor
     gpu::allocate(hd_data().src,    hornet.nE()); // Allocate space for endpoints of edges and counter
     gpu::allocate(hd_data().dst,    hornet.nE());
     gpu::allocate(hd_data().counter, 1);
-    gpu::allocate(hd_data().max_clique, 1);
+    gpu::allocate(max_clique_size, 1);
 }
 
 KCore::~KCore() { // Deconstructor, frees up all GPU memory used by algorithm
@@ -74,13 +74,6 @@ struct FixedCoreNumVertices{
 };
 
 
-/** 
- * @brief Function to check if a we can add a vertex to a clique
- * @params v: vertex starting the clique.  Neighbors with nonzero edge weight are in current clique
- * @params u: vertex to potentially add to clique.  
- * @return whether u will form a clique with current clique
- */
-
 bool check_clique(Vertex &v, Vertex &u){
     #pragma omp parallel for
     bool is_clique = true;
@@ -105,7 +98,7 @@ bool check_clique(Vertex &v, Vertex &u){
 
 struct GetLocalClique{
     vid_t *core_number;
-    HostDeviceVar<KCoreData> hd;
+    uint32_t *max_clique_size;
     WeightT w = 1;
 
     OPERATOR(Vertex &v){
@@ -127,7 +120,7 @@ struct GetLocalClique{
             if (check_clique(v, u)){
                 i.set_weight(w);
                 curr_size += 1;
-                atomicMax(hd().max_clique, curr_size);
+                atomicMax(max_clique_size, curr_size);
             }
             
         }
@@ -359,8 +352,8 @@ void max_clique_heuristic(HornetGraph &hornet,
                 forAllVertices(hornet, vertex_frontier, GetLocalClique { core_number, hd});
 
             // Remove vertices without sufficiently high core number 
-            uint32_t curr_clique_size = hd.max_clique; 
-            forAllVertices(hornet, CoreRemoveVertices {vertex_pres, core_number, curr_clique_size});
+            uint32_t curr_max = max_clique_size; 
+            forAllVertices(hornet, CoreRemoveVertices {vertex_pres, core_number, curr_max});
             forAllEdges(hornet, SmallCoreEdges { vertex_pres, hd }, load_balancing);
         }
     //     peel--;
@@ -368,7 +361,6 @@ void max_clique_heuristic(HornetGraph &hornet,
     int size = 0;
     cudaMemcpy(&size, hd().counter, sizeof(int), cudaMemcpyDeviceToHost);
     *batch_size = size;
-    *max_clique_size = curr_clique_size;
     // std::cout << "Max Clique Found: " << max_clique_size << std::endl;
 }
 
@@ -383,11 +375,14 @@ void KCore::run() {
     uint32_t peel_edges = 0;
     uint32_t ne = hornet.nE();
     std::cout << "ne: " << ne << std::endl;
+    uint32_t max_clique_size = new uint32_t;
+    max_clique_size = 1;
 
     auto pres = vertex_pres;
     auto deg = vertex_deg;
     auto color = vertex_color;
     auto core_number = vertex_core_number;
+    
     
     // What does this do?
     forAllnumV(hornet, [=] __device__ (int i){ pres[i] = 0; } );
@@ -435,11 +430,11 @@ void KCore::run() {
 
     int n_active = active_queue.size();
     uint32_t peel = max_peel;
-    uint32_t max_clique_size = 1;
+    
     
     Tclique.start();
     // Begin actual clique heuristic algorithm
-    while (peel >= curr_clique_size & n_active > 0) {
+    while (peel >= curr_max & n_active > 0) {
         int batch_size = 0;
         max_clique_heuristic(hornet, hd_data,  active_queue, vertex_frontier, load_balancing,
                              vertex_pres, vertex_core_number, &max_clique_size, &peel, &batch_size);
