@@ -98,7 +98,7 @@ struct FixedCoreNumVertices{
 
 struct GetLocalClique{
     vid_t *core_number;
-    uint32_t *max_clique_size;
+    uint32_t max_clique_size;
 
     OPERATOR(Vertex &v){
         // construct std::set of neighbors of current vertex
@@ -166,7 +166,7 @@ struct PeelVertices { // Data structure to keep track of vertices to peel off
 struct CoreRemoveVertices { // Data structure to keep track of vertices to peel off
     vid_t *vertex_pres;
     vid_t *core_number;
-    uint32_t *peel;
+    uint32_t peel;
     
     OPERATOR(Vertex &v) { // Mark present vertices with insufficicnt degree for peeling
         vid_t id = v.id();
@@ -326,7 +326,7 @@ void get_core_numbers(HornetGraph &hornet,
     active_queue.swap(); // Swap input to output queue
 
     int n_active = active_queue.size();
-    uint32_t peel = 0;
+    uint32_t *peel = 0;
 
     while (n_active > 0) {
         // Why do we use a particular queue in forAllVertices?  Does it go through all vertices in this queue?
@@ -394,7 +394,7 @@ void KCore::run() {
     uint32_t ne = hornet.nE();
     std::cout << "ne: " << ne << std::endl;
     // uint32_t max_clique_size = new uint32_t;
-    *max_clique_size = 1;
+    max_clique_size = 1;
 
 
     auto pres = vertex_pres;
@@ -452,7 +452,7 @@ void KCore::run() {
     Tclique.start();
     // Begin actual clique heuristic algorithm
     while (peel >= max_clique_size) {
-        int *batch_size = 0;
+        int batch_size = 0;
 
         max_clique_heuristic(hornet, hd_data, vertex_frontier, load_balancing,
                              vertex_pres, vertex_core_number, &max_clique_size, &peel, &batch_size);
