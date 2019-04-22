@@ -17,7 +17,6 @@ KCore::KCore(HornetGraph &hornet) : // Constructor
                         active_queue(hornet),
                         iter_queue(hornet),
                         vertex_frontier(hornet),
-                        clique_queue(hornet),
                         load_balancing(hornet)
                         {
 
@@ -25,10 +24,11 @@ KCore::KCore(HornetGraph &hornet) : // Constructor
     gpu::allocate(vertex_color, hornet.nV());
     gpu::allocate(vertex_deg, hornet.nV());
     gpu::allocate(vertex_core_number, hornet.nV()); // Keep track of core numbers of vertices
-    gpu::allocate(vertex_clique_number, hornet.nV()); // Keep track of clique numbers of vertices
+    // gpu::allocate(vertex_clique_number, hornet.nV()); // Keep track of clique numbers of vertices
     gpu::allocate(hd_data().src,    hornet.nE()); // Allocate space for endpoints of edges and counter
     gpu::allocate(hd_data().dst,    hornet.nE());
     gpu::allocate(hd_data().counter, 1);
+    gpu::allocate(hd_data().max_clique, 1);
 }
 
 KCore::~KCore() { // Deconstructor, frees up all GPU memory used by algorithm
@@ -36,7 +36,7 @@ KCore::~KCore() { // Deconstructor, frees up all GPU memory used by algorithm
     gpu::free(vertex_color);
     gpu::free(vertex_deg);
     gpu::free(vertex_core_number);
-    gpu::free(vertex_clique_number); 
+    // gpu::free(vertex_clique_number); 
     gpu::free(hd_data().src);
     gpu::free(hd_data().dst);
 }
@@ -73,54 +73,63 @@ struct FixedCoreNumVertices{
 
 };
 
-// Function to check if a we can add a vertex to a clique
-bool check_clique(std::set<vid_t> nbhrs, std::set<vid_t> curr_clique){
-    for (std::set<vid_t>::iterator i=curr_clique.begin(); i != curr_clique.end(); ++i){
-        if (nbhrs.find(*i) == nbhrs.end()){
-            return false;
+
+/** 
+ * @brief Function to check if a we can add a vertex to a clique
+ * @params v: vertex starting the clique.  Neighbors with nonzero edge weight are in current clique
+ * @params u: vertex to potentially add to clique.  
+ * @return whether u will form a clique with current clique
+ */
+
+bool check_clique(Vertex &v, Vertex &u){
+    #pragma omp parallel for
+    bool is_clique = true;
+    for (Edge::iterator i = v.edge_begin(); i != v.edge_end(); i++){
+        bool found = false;
+        if (WeightT *i.weight() == 1){
+            vid_t id = *i.src_id();
+
+            #pragma omp parallel for
+            for (Edge::iterator j = u.edge_begin(); j != u.edge_end(); j++){
+                if (*j.dst_id() == id){
+                    bool found = true;
+                }
+            }
+            if (!found){
+                is_clique = false;
+            }
         }
     }
-    return true;
+    return is_clique;
 }
 
 struct GetLocalClique{
-    vid_t *clique_number;
     vid_t *core_number;
-    uint32_t curr_max_size;
-    TwoLevelQueue<vid_t> clique_queue;
-    
+    HostDeviceVar<KCoreData> hd;
+    WeightT w = 1;
 
     OPERATOR(Vertex &v){
         // construct std::set of neighbors of current vertex
-        std::set<vid_t> curr_clique;
-        curr_clique.insert(v.id());
+        /* I want a vertex properties that include:
+            whether a vertex was visited on current sweep and
+            whether it's in the max clique
+        */
 
+        uint32_t curr_size = 1;
         // Make sure vertex has coreness >= max_clique_size before inserting
-        for (degree_t i=0; i<v.degree(); i++){
-            Vertex u = v.edge(i).dst();
+        for (degree_t i=0; i<v.degree(); i++)
+        for (Edge::iterator i = v.edge_begin(); i != v.edge_end(); i++){
+            Vertex u = i.dst();
             vid_t id = u.id();
-            std::set<vid_t> nbhrs;
-
+            
             // Check if nbhrs with coreness >= max_clique_size are part of a clique
-            if (core_number[id] >= curr_max_size){
-                #pragma omp parallel for
-                for (degree_t j=0; j<u.degree(); j++){
-                    vid_t curr_nbhr_id = u.neighbor_id(j);
-
-                    if (core_number[curr_nbhr_id] >= curr_max_size){
-                        nbhrs.insert(curr_nbhr_id);
-                    } 
-                }
-                if (check_clique(nbhrs, curr_clique)){
-                    curr_clique.insert(id);
-                }
+            // If so, increment clique size
+            if (check_clique(v, u)){
+                i.set_weight(w);
+                curr_size += 1;
+                atomicMax(hd().max_clique, curr_size);
             }
-            uint32_t curr_size = curr_clique.size();
-            if (curr_size > curr_max_size){
-                clique_queue.insert(id);
-                clique_number[id] = curr_size;
-                // curr_max_size = curr_size;
-            }
+            
         }
     }
 };
@@ -220,6 +229,8 @@ struct GetDegOne { // Mark all vertices of degree 1
     }
 };
 
+
+
 struct DegOneEdges {
     HostDeviceVar<KCoreData> hd;
     vid_t *vertex_color;
@@ -242,6 +253,35 @@ struct DegOneEdges {
     }
 };
 
+struct SmallCoreEdges {
+    HostDeviceVar<KCoreData> hd;
+    vid_t *vertex_pres;
+
+     OPERATOR(Vertex &v, Edge &e){
+        vid_t src = v.id();
+        vid_t dst = e.dst_id();
+
+        if (!vertex_pres[src] || !vertex_pres[dst]){
+            int spot = atomicAdd(hd().counter, 1);
+            hd().src[spot] = src;
+            hd().dst[spot] = dst;
+            if (vertex_pres[src] || vertex_pres[dst]){
+                int spot_rev = atomicAdd(hd().counter, 1);
+                hd().src[spot_rev] = dst;
+                hd().dst[spot_rev] = src;
+            }
+        }
+     }
+}
+
+struct ResetWeight { // Reset edge weight to 0 after finding current iteration of cliques
+    WeightT w = 0;
+
+    OPERATOR(Vertex &v, Edge &e){
+        e.set_weight(w)
+    }
+}
+
 void KCore::reset() {  // What does this do?
     vqueue.swap();
     peel_vqueue.swap();
@@ -260,7 +300,6 @@ void oper_bidirect_batch(HornetGraph &hornet, vid_t *src, vid_t *dst,
 }
 
 void get_core_numbers(HornetGraph &hornet, 
-    HostDeviceVar<KCoreData>& hd, 
     TwoLevelQueue<vid_t> &peel_queue,
     TwoLevelQueue<vid_t> &active_queue,
     TwoLevelQueue<vid_t> &iter_queue,
@@ -301,61 +340,36 @@ void get_core_numbers(HornetGraph &hornet,
 
 void max_clique_heuristic(HornetGraph &hornet,
     HostDeviceVar<KCoreData>& hd, 
-    TwoLevelQueue<vid_t> &peel_queue,
-    TwoLevelQueue<vid_t> &active_queue,
-    TwoLevelQueue<vid_t> &iter_queue,
-    TwoLevelQueue<vid_t> &clique_queue,
     TwoLevelQueue<vid_t> &vertex_frontier,
     load_balancing::VertexBased1 load_balancing,
-    vid_t *deg,
     vid_t *vertex_pres,
     vid_t *core_number,
-    vid_t *clique_number,
-    uint32_t *max_clique_size){
+    uint32_t *max_clique_size, 
+    uint32_t *peel,
+    int *batch_size){
 
-    uint32_t max_peel = 0;
-    get_core_numbers(hornet, hd, peel_queue, active_queue, iter_queue, 
-        load_balancing, deg, vertex_pres, core_number, &max_peel);
-    // Get active vertices (with clique number > 0)
-    forAllVertices(hornet, ActiveVertices { vertex_pres, core_number, active_queue }); // Get active vertices in parallel (puts in input queue)
-    active_queue.swap(); // Swap input to output queue
-    int n_active = active_queue.size();
-    uint32_t peel = 0;
-    uint32_t curr_clique_size = 1;
-    peel = max_peel;
-
-    
-    while (peel >= curr_clique_size & n_active > 0) {
-        forAllVertices(hornet, active_queue, FixedCoreNumVertices{ core_number, peel, vertex_frontier });   
+    // while (vertex_frontier.size() == 0){
+        forAllVertices(hornet, FixedCoreNumVertices{ core_number, peel, vertex_frontier });   
         std::cout << "Vertex Frontier Size before swap: " << vertex_frontier.size() << std::endl;     
         vertex_frontier.swap();
         std::cout << "Vertex Frontier Size after swap: " << vertex_frontier.size() << std::endl;   
-        n_active -= vertex_frontier.size();
-    
+
         if (vertex_frontier.size() > 0) {
             // Get clique numbers of vertices of frontier core number
-             forAllVertices(hornet, vertex_frontier, GetLocalClique { clique_number, core_number, curr_clique_size, clique_queue});
-             clique_queue.swap();
+                forAllVertices(hornet, vertex_frontier, GetLocalClique { core_number, hd});
 
-            if (clique_queue.size() > 0){
-             // Update curr_clique_size
-                for (int i=0; i < clique_queue.size(); i++){
-                    if (clique_number[i] > curr_clique_size) {
-                        curr_clique_size = clique_number[i];
-                    }
-                }
-
-                // Remove vertices without sufficiently high core number 
-                peel = curr_clique_size; 
-                forAllVertices(hornet, active_queue, CoreRemoveVertices {vertex_pres, core_number, peel});
-            }
-        } else {
-            forAllEdges(hornet, iter_queue, DecrementDegree { deg }, load_balancing); // Go through vertices in iter_queue and decrement the degree of their nbhrs
+            // Remove vertices without sufficiently high core number 
+            uint32_t curr_clique_size = hd.max_clique; 
+            forAllVertices(hornet, CoreRemoveVertices {vertex_pres, core_number, curr_clique_size});
+            forAllEdges(hornet, SmallCoreEdges { vertex_pres, hd }, load_balancing);
         }
-        peel--;
-    }
+    //     peel--;
+    // }
+    int size = 0;
+    cudaMemcpy(&size, hd().counter, sizeof(int), cudaMemcpyDeviceToHost);
+    *batch_size = size;
     *max_clique_size = curr_clique_size;
-    std::cout << "Max Clique Found: " << max_clique_size << std::endl;
+    // std::cout << "Max Clique Found: " << max_clique_size << std::endl;
 }
 
 
@@ -373,6 +387,7 @@ void KCore::run() {
     auto pres = vertex_pres;
     auto deg = vertex_deg;
     auto color = vertex_color;
+    auto core_number = vertex_core_number;
     
     // What does this do?
     forAllnumV(hornet, [=] __device__ (int i){ pres[i] = 0; } );
@@ -380,70 +395,63 @@ void KCore::run() {
     forAllnumV(hornet, [=] __device__ (int i){ color[i] = 0; } );
 
     Timer<DEVICE> TM;
+    Timer<DEVICE> Tclique;
     TM.start();
 
-    // /* Begin degree 1 vertex preprocessing optimization */ 
+    /* Begin degree 1 vertex preprocessing optimization */ 
+    // Find vertices of degree 1.
+    forAllVertices(hornet, GetDegOne { vqueue, vertex_color });
+    vqueue.swap();
 
-    // // Find vertices of degree 1.
-    // forAllVertices(hornet, GetDegOne { vqueue, vertex_color });
-    // vqueue.swap();
+    // Find the edges incident to these vertices.
+    gpu::memsetZero(hd_data().counter);  // reset counter. 
+    forAllEdges(hornet, vqueue, 
+                    DegOneEdges { hd_data, vertex_color }, load_balancing);
 
-    // // Find the edges incident to these vertices.
-    // gpu::memsetZero(hd_data().counter);  // reset counter. 
-    // forAllEdges(hornet, vqueue, 
-    //                 DegOneEdges { hd_data, vertex_color }, load_balancing);
-
-    // // Mark edges with peel 1.
-    // int peel_one_count = 0;
-    // cudaMemcpy(&peel_one_count, hd_data().counter, sizeof(int), cudaMemcpyDeviceToHost);
-    // #pragma omp parallel for
-    // for (int i = 0; i < peel_one_count; i++) {
-    //     peel[i] = 1;
-    // }
+    // Mark edges with peel 1.
+    int peel_one_count = 0;
+    cudaMemcpy(&peel_one_count, hd_data().counter, sizeof(int), cudaMemcpyDeviceToHost);
 
     cudaMemcpy(src, hd_data().src, hornet.nV() * sizeof(vid_t), 
                     cudaMemcpyDeviceToHost);
     cudaMemcpy(dst, hd_data().dst, hornet.nV() * sizeof(vid_t), 
                     cudaMemcpyDeviceToHost);
 
-    uint32_t max_clique_size;
-    max_clique_heuristic(hornet, hd_data, peel_vqueue, active_queue, iter_queue, clique_queue, vertex_frontier,
-                       load_balancing, vertex_deg, vertex_pres, vertex_core_number, vertex_clique_number, &max_clique_size);
+    // Delete peel 1 edges.
+    oper_bidirect_batch(hornet, hd_data().src, hd_data().dst, peel_one_count, DELETE);
 
 
-
-    // peel_edges = (uint32_t)peel_one_count;
-
-    // // Delete peel 1 edges.
-    // oper_bidirect_batch(hornet, hd_data().src, hd_data().dst, peel_one_count, DELETE);
-
-    /* Begin running main kcore algorithm */
-    // while (peel_edges < ne) {
-    //     uint32_t max_peel = 0;
-    //     int batch_size = 0;
-
-    //     kcores_new(hornet, hd_data, peel_vqueue, active_queue, iter_queue, 
-    //                load_balancing, vertex_deg, vertex_pres, &max_peel, &batch_size);
-    //     std::cout << "max_peel: " << max_peel << "\n";
-
-    //     if (batch_size > 0) {
-    //         cudaMemcpy(src + peel_edges, hd_data().src, 
-    //                    batch_size * sizeof(vid_t), cudaMemcpyDeviceToHost);
-
-    //         cudaMemcpy(dst + peel_edges, hd_data().dst, 
-    //                    batch_size * sizeof(vid_t), cudaMemcpyDeviceToHost);
-
-    //         #pragma omp parallel for
-    //         for (int i = 0; i < batch_size; i++) {
-    //             peel[peel_edges + i] = max_peel;
-    //         }
-
-    //         peel_edges += batch_size;
-    //     }
-    //     oper_bidirect_batch(hornet, hd_data().src, hd_data().dst, batch_size, DELETE);
-    // }
+    // Get vertex core numbers
+    uint32_t max_peel = 0;
+    get_core_numbers(hornet, hd, peel_vqueue, active_queue, iter_queue, 
+        load_balancing, deg, vertex_pres, core_number, &max_peel);
+    gpu::memsetZero(hd().counter);
     TM.stop();
-    TM.print("KCore");
+    TM.print("CoreNumbers");
+
+    // Get active vertices (with clique number > 0)
+    forAllVertices(hornet, ActiveVertices { vertex_pres, core_number, active_queue }); // Get active vertices in parallel (puts in input queue)
+    active_queue.swap(); // Swap input to output queue
+
+    int n_active = active_queue.size();
+    uint32_t peel = max_peel;
+    uint32_t max_clique_size = 1;
+    
+    Tclique.start();
+    // Begin actual clique heuristic algorithm
+    while (peel >= curr_clique_size & n_active > 0) {
+        int batch_size = 0;
+        max_clique_heuristic(hornet, hd_data,  active_queue, vertex_frontier, load_balancing,
+                             vertex_pres, vertex_core_number, &max_clique_size, &peel, &batch_size);
+
+        std::cout << "Current Max Clique: " << max_clique_size << "\n";
+
+        oper_bidirect_batch(hornet, hd_data().src, hd_data().dst, batch_size, DELETE);
+        gpu::memsetZero(hd().counter);
+        peel--;
+    }
+    Tclique.stop();
+    Tclique.print("Clique Heuristic");
 }
 
 void KCore::release() {
@@ -451,7 +459,7 @@ void KCore::release() {
     gpu::free(vertex_color);
     gpu::free(vertex_deg);
     gpu::free(vertex_core_number);
-    gpu::free(vertex_clique_number); 
+    // gpu::free(vertex_clique_number); 
     gpu::free(hd_data().src);
     gpu::free(hd_data().dst);
     hd_data().src = nullptr;
