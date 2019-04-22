@@ -61,7 +61,7 @@ struct ActiveVertices { // Create data structure to keep track of active vertice
 
 struct FixedCoreNumVertices{
     vid_t *core_number;
-    uint32_t curr_coreness;
+    uint32_t *curr_coreness;
     TwoLevelQueue<vid_t> vertex_frontier;
 
     OPERATOR(Vertex &v){
@@ -99,7 +99,6 @@ struct FixedCoreNumVertices{
 struct GetLocalClique{
     vid_t *core_number;
     uint32_t *max_clique_size;
-    WeightT w = 1;
 
     OPERATOR(Vertex &v){
         // construct std::set of neighbors of current vertex
@@ -138,7 +137,7 @@ struct GetLocalClique{
             // Check if nbhrs with coreness >= max_clique_size are part of a clique
             // If so, increment clique size
             if (is_clique){
-                i.set_weight(w);
+                i.set_weight(1);
                 curr_size += 1;
                 atomicMax(max_clique_size, curr_size);
             }
@@ -267,8 +266,9 @@ struct DegOneEdges {
 };
 
 struct SmallCoreEdges {
-    HostDeviceVar<KCoreData> hd;
     vid_t *vertex_pres;
+    HostDeviceVar<KCoreData> hd;
+    
 
      OPERATOR(Vertex &v, Edge &e){
         vid_t src = v.id();
@@ -285,15 +285,14 @@ struct SmallCoreEdges {
             }
         }
      }
-}
+};
 
 struct ResetWeight { // Reset edge weight to 0 after finding current iteration of cliques
-    WeightT w = 0;
 
     OPERATOR(Vertex &v, Edge &e){
-        e.set_weight(w)
+        e.set_weight(0);
     }
-}
+};
 
 void KCore::reset() {  // What does this do?
     vqueue.swap();
@@ -369,11 +368,11 @@ void max_clique_heuristic(HornetGraph &hornet,
 
         if (vertex_frontier.size() > 0) {
             // Get clique numbers of vertices of frontier core number
-                forAllVertices(hornet, vertex_frontier, GetLocalClique { core_number, hd});
+                forAllVertices(hornet, vertex_frontier, GetLocalClique { core_number, max_clique_size });
 
             // Remove vertices without sufficiently high core number 
-            uint32_t curr_max = max_clique_size; 
-            forAllVertices(hornet, CoreRemoveVertices {vertex_pres, core_number, curr_max});
+            // uint32_t *curr_max = max_clique_size; 
+            forAllVertices(hornet, CoreRemoveVertices {vertex_pres, core_number, max_clique_size});
             forAllEdges(hornet, SmallCoreEdges { vertex_pres, hd }, load_balancing);
         }
     //     peel--;
@@ -392,11 +391,10 @@ void KCore::run() {
     vid_t *dst     = new vid_t[hornet.nE()];
     uint32_t len = hornet.nE() / 2 + 1;
     uint32_t *peel = new uint32_t[hornet.nE()];
-    uint32_t peel_edges = 0;
     uint32_t ne = hornet.nE();
     std::cout << "ne: " << ne << std::endl;
     uint32_t max_clique_size = new uint32_t;
-    max_clique_size = 1;
+    *max_clique_size = 1;
 
     auto pres = vertex_pres;
     auto deg = vertex_deg;
@@ -437,10 +435,10 @@ void KCore::run() {
 
 
     // Get vertex core numbers
-    uint32_t max_peel = 0;
-    get_core_numbers(hornet, hd, peel_vqueue, active_queue, iter_queue, 
-        load_balancing, deg, vertex_pres, core_number, &max_peel);
-    gpu::memsetZero(hd().counter);
+    peel = 0;
+    get_core_numbers(hornet, peel_vqueue, active_queue, iter_queue, 
+        load_balancing, deg, vertex_pres, core_number, &peel);
+    gpu::memsetZero(hd_data().counter);
     TM.stop();
     TM.print("CoreNumbers");
 
@@ -449,20 +447,19 @@ void KCore::run() {
     active_queue.swap(); // Swap input to output queue
 
     int n_active = active_queue.size();
-    uint32_t peel = max_peel;
-    
     
     Tclique.start();
     // Begin actual clique heuristic algorithm
-    while (peel >= curr_max & n_active > 0) {
+    while (peel >= max_clique_size & n_active > 0) {
         int batch_size = 0;
-        max_clique_heuristic(hornet, hd_data,  active_queue, vertex_frontier, load_balancing,
+
+        max_clique_heuristic(hornet, hd_data, vertex_frontier, load_balancing,
                              vertex_pres, vertex_core_number, &max_clique_size, &peel, &batch_size);
 
         std::cout << "Current Max Clique: " << max_clique_size << "\n";
 
         oper_bidirect_batch(hornet, hd_data().src, hd_data().dst, batch_size, DELETE);
-        gpu::memsetZero(hd().counter);
+        gpu::memsetZero(hd_data().counter);
         peel--;
     }
     Tclique.stop();
