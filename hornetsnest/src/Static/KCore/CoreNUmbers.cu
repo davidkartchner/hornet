@@ -394,7 +394,7 @@ void KCore::run() {
     uint32_t ne = hornet.nE();
     std::cout << "ne: " << ne << std::endl;
     // uint32_t max_clique_size = new uint32_t;
-    max_clique_size = 1;
+    *max_clique_size = 1;
 
 
     auto pres = vertex_pres;
@@ -452,7 +452,7 @@ void KCore::run() {
     Tclique.start();
     // Begin actual clique heuristic algorithm
     while (peel >= max_clique_size) {
-        int batch_size = 0;
+        int *batch_size = 0;
 
         max_clique_heuristic(hornet, hd_data, vertex_frontier, load_balancing,
                              vertex_pres, vertex_core_number, &max_clique_size, &peel, &batch_size);
