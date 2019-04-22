@@ -166,7 +166,7 @@ struct PeelVertices { // Data structure to keep track of vertices to peel off
 struct CoreRemoveVertices { // Data structure to keep track of vertices to peel off
     vid_t *vertex_pres;
     vid_t *core_number;
-    uint32_t peel;
+    uint32_t *peel;
     
     OPERATOR(Vertex &v) { // Mark present vertices with insufficicnt degree for peeling
         vid_t id = v.id();
@@ -372,7 +372,7 @@ void max_clique_heuristic(HornetGraph &hornet,
 
             // Remove vertices without sufficiently high core number 
             // uint32_t *curr_max = max_clique_size; 
-            forAllVertices(hornet, CoreRemoveVertices {vertex_pres, core_number, max_clique_size});
+            forAllVertices(hornet, CoreRemoveVertices { vertex_pres, core_number, max_clique_size });
             forAllEdges(hornet, SmallCoreEdges { vertex_pres, hd }, load_balancing);
         }
     //     peel--;
@@ -393,7 +393,7 @@ void KCore::run() {
     uint32_t *peel = new uint32_t[hornet.nE()];
     uint32_t ne = hornet.nE();
     std::cout << "ne: " << ne << std::endl;
-    uint32_t max_clique_size = new uint32_t;
+    uint32_t *max_clique_size = new uint32_t;
     *max_clique_size = 1;
 
     auto pres = vertex_pres;
@@ -435,7 +435,7 @@ void KCore::run() {
 
 
     // Get vertex core numbers
-    peel = 0;
+    *peel = 0;
     get_core_numbers(hornet, peel_vqueue, active_queue, iter_queue, 
         load_balancing, deg, vertex_pres, core_number, &peel);
     gpu::memsetZero(hd_data().counter);
