@@ -38,13 +38,15 @@ private:
     TwoLevelQueue<vid_t> active_queue;
     TwoLevelQueue<vid_t> iter_queue;
     TwoLevelQueue<vid_t> vertex_frontier;
-    TwoLevelQueue<vid_t> clique_queue;
+    // TwoLevelQueue<vid_t> clique_queue;
 
     vid_t *vertex_pres { nullptr };
     vid_t *vertex_color { nullptr };
     vid_t *vertex_deg { nullptr };
     vid_t *vertex_core_number { nullptr };
-    vid_t *vertex_clique_number {nullptr};
+    // vid_t *vertex_clique_number {nullptr};
+
+    uint32_t *max_clique_size { nullptr };
 };
 
 }

@@ -74,27 +74,27 @@ struct FixedCoreNumVertices{
 };
 
 
-bool check_clique(Vertex &v, Vertex &u){
-    #pragma omp parallel for
-    bool is_clique = true;
-    for (Edge::iterator i = v.edge_begin(); i != v.edge_end(); i++){
-        bool found = false;
-        if (WeightT *i.weight() == 1){
-            vid_t id = *i.src_id();
+// bool check_clique(Vertex &v, Vertex &u){
+//     #pragma omp parallel for
+//     bool is_clique = true;
+//     for (Edge::iterator i = v.edge_begin(); i != v.edge_end(); i++){
+//         bool found = false;
+//         if (WeightT *i.weight() == 1){
+//             vid_t id = *i.src_id();
 
-            #pragma omp parallel for
-            for (Edge::iterator j = u.edge_begin(); j != u.edge_end(); j++){
-                if (*j.dst_id() == id){
-                    bool found = true;
-                }
-            }
-            if (!found){
-                is_clique = false;
-            }
-        }
-    }
-    return is_clique;
-}
+//             #pragma omp parallel for
+//             for (Edge::iterator j = u.edge_begin(); j != u.edge_end(); j++){
+//                 if (*j.dst_id() == id){
+//                     bool found = true;
+//                 }
+//             }
+//             if (!found){
+//                 is_clique = false;
+//             }
+//         }
+//     }
+//     return is_clique;
+// }
 
 struct GetLocalClique{
     vid_t *core_number;
@@ -110,14 +110,34 @@ struct GetLocalClique{
 
         uint32_t curr_size = 1;
         // Make sure vertex has coreness >= max_clique_size before inserting
-        for (degree_t i=0; i<v.degree(); i++)
+        // for (degree_t i=0; i<v.degree(); i++)
         for (Edge::iterator i = v.edge_begin(); i != v.edge_end(); i++){
             Vertex u = i.dst();
             vid_t id = u.id();
+
+            #pragma omp parallel for
+            bool is_clique = true;
+            for (Edge::iterator i = v.edge_begin(); i != v.edge_end(); i++){
+                bool found = false;
+                if (WeightT *i.weight() == 1){
+                    vid_t id = *i.src_id();
+
+                    #pragma omp parallel for
+                    for (Edge::iterator j = u.edge_begin(); j != u.edge_end(); j++){
+                        if (*j.dst_id() == id){
+                            bool found = true;
+                        }
+                    }
+                    if (!found){
+                        is_clique = false;
+                    }
+                }
+            }
+            
             
             // Check if nbhrs with coreness >= max_clique_size are part of a clique
             // If so, increment clique size
-            if (check_clique(v, u)){
+            if (is_clique){
                 i.set_weight(w);
                 curr_size += 1;
                 atomicMax(max_clique_size, curr_size);
