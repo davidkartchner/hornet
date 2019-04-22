@@ -390,10 +390,10 @@ void KCore::run() {
     vid_t *src     = new vid_t[hornet.nE()];
     vid_t *dst     = new vid_t[hornet.nE()];
     uint32_t len = hornet.nE() / 2 + 1;
-    uint32_t peel = new uint32_t[hornet.nE()];
+    uint32_t peel = new uint32_t;
     uint32_t ne = hornet.nE();
     std::cout << "ne: " << ne << std::endl;
-    uint32_t *max_clique_size = new uint32_t;
+    uint32_t max_clique_size = new uint32_t;
     *max_clique_size = 1;
 
     auto pres = vertex_pres;
