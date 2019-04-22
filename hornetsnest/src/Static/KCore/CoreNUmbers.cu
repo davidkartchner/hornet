@@ -394,10 +394,9 @@ void KCore::run() {
     uint32_t ne = hornet.nE();
     std::cout << "ne: " << ne << std::endl;
     // uint32_t max_clique_size = new uint32_t;
-    max_clique_size = (uint32_t)1;
+    auto clique_size = max_clique_size;
+    clique_size = 1;
     
-
-
     auto pres = vertex_pres;
     auto deg = vertex_deg;
     auto color = vertex_color;
