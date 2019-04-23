@@ -362,10 +362,11 @@ void max_clique_heuristic(HornetGraph &hornet,
     uint32_t *peel,
     int *batch_size){
 
+    // uint32_t curr_peel =  *peel;
     uint32_t clique_size = 0;
     clique_size++;
     // while (vertex_frontier.size() == 0){
-        forAllVertices(hornet, FixedCoreNumVertices{ core_number, &peel, vertex_frontier });   
+        forAllVertices(hornet, FixedCoreNumVertices{ core_number, *peel, vertex_frontier });   
         std::cout << "Vertex Frontier Size before swap: " << vertex_frontier.size() << std::endl;     
         vertex_frontier.swap();
         std::cout << "Vertex Frontier Size after swap: " << vertex_frontier.size() << std::endl;   
