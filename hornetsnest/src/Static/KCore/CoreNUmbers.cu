@@ -152,7 +152,7 @@ struct GetLocalClique{
                     // Check if 
                     #pragma omp parallel for
                     for (int k = 0; k < length_u; k++){
-                        if (uNeighPtr[k] == id){
+                        if (uNeighPtr[k] == w_id){
                             found = true;
                             break;
                         }
