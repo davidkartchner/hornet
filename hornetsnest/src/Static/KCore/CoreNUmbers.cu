@@ -28,7 +28,7 @@ KCore::KCore(HornetGraph &hornet) : // Constructor
     gpu::allocate(hd_data().src,    hornet.nE()); // Allocate space for endpoints of edges and counter
     gpu::allocate(hd_data().dst,    hornet.nE());
     gpu::allocate(hd_data().counter, 1);
-    gpu::allocate(edge_clique,    hornet.nE());
+    gpu::allocate(edge_in_clique,    hornet.nE());
     gpu::allocate(vertex_nbhr_offsets,    hornet.nE());
     // gpu::allocate(max_clique_size, 1);
 }
@@ -42,7 +42,7 @@ KCore::~KCore() { // Deconstructor, frees up all GPU memory used by algorithm
     gpu::free(hd_data().src);
     gpu::free(hd_data().dst);
     gpu::free(edge_in_clique);
-    gpu::free(vertex_nbhrs)
+    gpu::free(vertex_nbhr_offsets);
 }
 
 

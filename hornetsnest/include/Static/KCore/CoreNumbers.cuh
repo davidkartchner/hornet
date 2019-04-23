@@ -44,7 +44,8 @@ private:
     vid_t *vertex_color { nullptr };
     vid_t *vertex_deg { nullptr };
     uint32_t *vertex_core_number { nullptr };
-    // vid_t *vertex_clique_number {nullptr};
+    vid_t *vertex_nbhr_offsets { nullptr };
+    bool *edge_in_clique { nullptr };
 
     uint32_t *max_clique_size { nullptr };
 };
