@@ -110,19 +110,19 @@ struct GetLocalClique{
         uint32_t curr_size = 1;
         // Make sure vertex has coreness >= max_clique_size before inserting
         // for (degree_t i=0; i<v.degree(); i++)
-        for (edgeit_t i = v.edge_begin(); i != v.edge_end(); i++){
+        for (eid_t i = v.edge_begin(); i != v.edge_end(); i++){
             Vertex u = i.dst();
             vid_t id = u.id();
 
             #pragma omp parallel for
             bool is_clique = true;
-            for (Edge::iterator i = v.edge_begin(); i != v.edge_end(); i++){
+            for (eid_t i = v.edge_begin(); i != v.edge_end(); i++){
                 bool found = false;
                 if (WeightT *i.weight() == 1){
                     vid_t id = *i.src_id();
 
                     #pragma omp parallel for
-                    for (edgeit_t j = u.edge_begin(); j != u.edge_end(); j++){
+                    for (Edge::iterator j = u.edge_begin(); j != u.edge_end(); j++){
                         if (*j.dst_id() == id){
                             bool found = true;
                         }
