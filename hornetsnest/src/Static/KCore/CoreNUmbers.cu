@@ -86,7 +86,7 @@ struct InitializeOffsets{
     OPERATOR(Vertex &v){
         uint32_t deg = v.degree();
         vid_t id = v.id();
-        vertex_nbhr_offsets[id] = &hd().counter;
+        vertex_nbhr_offsets[id] = *hd().counter;
         atomicAdd(hd().counter, deg);
     }
 
