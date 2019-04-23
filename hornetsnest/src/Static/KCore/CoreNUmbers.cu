@@ -98,7 +98,7 @@ struct FixedCoreNumVertices{
 
 struct GetLocalClique{
     uint32_t *core_number;
-    uint32_t max_clique_size;
+    uint16_t max_clique_size;
 
     OPERATOR(Vertex &v){
         // construct std::set of neighbors of current vertex
@@ -358,7 +358,7 @@ void max_clique_heuristic(HornetGraph &hornet,
     load_balancing::VertexBased1 load_balancing,
     vid_t *vertex_pres,
     uint32_t *core_number,
-    uint32_t *max_clique_size, 
+    uint16_t *max_clique_size, 
     uint32_t *peel,
     int *batch_size){
 
@@ -442,7 +442,7 @@ void KCore::run() {
 
     // Get vertex core numbers
     uint32_t peel = 0;
-    uint32_t max_clique_size = 0;
+    uint16_t max_clique_size = 0;
     max_clique_size++;
     uint32_t temp_clique_size;
     get_core_numbers(hornet, peel_vqueue, active_queue, iter_queue, 
@@ -451,11 +451,11 @@ void KCore::run() {
     TM.stop();
     TM.print("CoreNumbers");
 
-    // Get active vertices (with clique number > 0)
-    forAllVertices(hornet, ActiveVertices { vertex_pres, core_number, active_queue }); // Get active vertices in parallel (puts in input queue)
-    active_queue.swap(); // Swap input to output queue
+    // // Get active vertices (with clique number > 0)
+    // forAllVertices(hornet, CoreActiveVertices { vertex_pres, core_number, active_queue }); // Get active vertices in parallel (puts in input queue)
+    // active_queue.swap(); // Swap input to output queue
 
-    int n_active = active_queue.size();
+    // int n_active = active_queue.size();
     
     Tclique.start();
     // Begin actual clique heuristic algorithm
