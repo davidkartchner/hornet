@@ -442,7 +442,7 @@ void max_clique_heuristic(HornetGraph &hornet,
 
         if (vertex_frontier.size() > 0) {
             // Get clique numbers of vertices of frontier core number
-                forAllVertices(hornet, vertex_frontier, GetLocalClique { core_number, clique_size });
+            forAllVertices(hornet, vertex_frontier, GetLocalClique { core_number, vertex_nbhr_offsets, edge_in_clique, clique_size });
 
             // Remove vertices without sufficiently high core number 
             // uint32_t *curr_max = clique_size; 
