@@ -394,7 +394,7 @@ void KCore::run() {
     uint32_t ne = hornet.nE();
     std::cout << "ne: " << ne << std::endl;
     // uint32_t max_clique_size = new uint32_t;
-    uint32_t clique_size = (uint32_t)1;
+    
 
     
     auto pres = vertex_pres;
@@ -437,6 +437,8 @@ void KCore::run() {
 
     // Get vertex core numbers
     uint32_t peel = 0;
+    uint32_t clique_size = 0;
+    clique_size++;
     get_core_numbers(hornet, peel_vqueue, active_queue, iter_queue, 
         load_balancing, deg, vertex_pres, core_number, &peel);
     gpu::memsetZero(hd_data().counter);
