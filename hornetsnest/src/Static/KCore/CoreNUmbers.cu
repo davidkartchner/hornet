@@ -132,7 +132,7 @@ struct GetLocalClique{
         // Make sure vertex has coreness >= max_clique_size before inserting
         vid_t* vNeighPtr = v.neighbor_ptr();
         int length_v = v.degree();
-        int offset = vertex_nbhr_offsets[v.id()]
+        int offset = vertex_nbhr_offsets[v.id()];
         for (int i = 0; i < length_v; i++){
             vid_t u_id = vNeighPtr[i]; 
             Vertex u = hornet.vertex(id); // How can I get this?
