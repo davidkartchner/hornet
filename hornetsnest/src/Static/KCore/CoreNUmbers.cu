@@ -425,6 +425,8 @@ void max_clique_heuristic(HornetGraph &hornet,
     load_balancing::VertexBased1 load_balancing,
     vid_t *vertex_pres,
     uint32_t *core_number,
+    int *vertex_nbhr_offsets,
+    bool *edge_in_clique,
     uint32_t *max_clique_size, 
     uint32_t *peel,
     int *batch_size){
@@ -539,7 +541,7 @@ void KCore::run() {
         int batch_size = 0;
 
         max_clique_heuristic(hornet, hd_data, vertex_frontier, load_balancing,
-                             vertex_pres, vertex_core_number, &temp_clique_size, &peel, &batch_size);
+                             vertex_pres, vertex_core_number, offsets, clique_edges, &temp_clique_size, &peel, &batch_size);
 
         atomicMax(&max_clique_size, temp_clique_size);
 
