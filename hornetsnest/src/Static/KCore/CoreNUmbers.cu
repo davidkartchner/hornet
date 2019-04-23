@@ -135,7 +135,7 @@ struct GetLocalClique{
         int offset = vertex_nbhr_offsets[v.id()];
         for (int i = 0; i < length_v; i++){
             vid_t u_id = vNeighPtr[i]; 
-            Vertex u = hornet.vertex(id); // How can I get this?
+            Vertex u = hornet.vertex(u_id); // How can I get this?
 
             // Get nbhr info for u
             vid_t* uNeighPtr = u.neighbor_ptr();
