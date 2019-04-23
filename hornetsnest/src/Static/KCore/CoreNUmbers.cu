@@ -115,7 +115,10 @@ struct InitializeOffsets{
 
 struct GetLocalClique{
     uint32_t *core_number;
+    int *vertex_nbhr_offsets;
+    bool *edge_in_clique;
     uint32_t max_clique_size;
+
 
     OPERATOR(Vertex &v){
         // construct std::set of neighbors of current vertex
@@ -125,23 +128,33 @@ struct GetLocalClique{
         */
 
         uint32_t curr_size = 1;
-        // Make sure vertex has coreness >= max_clique_size before inserting
-        // for (degree_t i=0; i<v.degree(); i++)
-        for (eid_t i = v.edge_begin(); i != v.edge_end(); i++){
-            Vertex u = i.dst();
-            vid_t id = u.id();
 
+        // Make sure vertex has coreness >= max_clique_size before inserting
+        vid_t* vNeighPtr = v.neighbor_ptr();
+        int length_v = v.degree();
+        int offset = vertex_nbhr_offsets[v.id()]
+        for (int i = 0; i < length_v; i++){
+            vid_t u_id = vNeighPtr[i]; 
+            Vertex u = hornet.vertex(id); // How can I get this?
+
+            // Get nbhr info for u
+            vid_t* uNeighPtr = u.neighbor_ptr();
+            int length_u = v.degree();
+
+            // Loop through neibhbors of v currently in clique and check to see if also nbhrs of u
             #pragma omp parallel for
             bool is_clique = true;
-            for (eid_t i = v.edge_begin(); i != v.edge_end(); i++){
+            for (int j = 0; j < length_v; j++){
                 bool found = false;
-                if (WeightT *i.weight() == 1){
-                    vid_t id = *i.src_id();
+                if (edge_in_clique[offset + j]){
+                    vid_t w_id = vNeighPtr[j];
 
+                    // Check if 
                     #pragma omp parallel for
-                    for (eid_t j = u.edge_begin(); j != u.edge_end(); j++){
-                        if (*j.dst_id() == id){
+                    for (int k = 0; k < length_u; k++){
+                        if (uNeighPtr[k] == id){
                             found = true;
+                            break;
                         }
                     }
                     if (!found){
@@ -154,12 +167,49 @@ struct GetLocalClique{
             // Check if nbhrs with coreness >= max_clique_size are part of a clique
             // If so, increment clique size
             if (is_clique){
-                i.set_weight(1);
+                edge_in_clique[offset + i] = true;
                 curr_size += 1;
                 atomicMax(&max_clique_size, curr_size);
             }
             
         }
+        
+
+        // // Make sure vertex has coreness >= max_clique_size before inserting
+        // uint32_t curr_size = 1;
+        // for (eid_t i = v.edge_begin(); i != v.edge_end(); i++){
+        //     Vertex u = i.dst();
+        //     vid_t id = u.id();
+
+        //     #pragma omp parallel for
+        //     bool is_clique = true;
+        //     for (eid_t k = v.edge_begin(); k != v.edge_end(); k++){
+        //         bool found = false;
+        //         if (WeightT *k.weight() == 1){
+        //             vid_t id = *k.src_id();
+
+        //             #pragma omp parallel for
+        //             for (eid_t j = u.edge_begin(); j != u.edge_end(); j++){
+        //                 if (*j.dst_id() == id){
+        //                     found = true;
+        //                 }
+        //             }
+        //             if (!found){
+        //                 is_clique = false;
+        //             }
+        //         }
+        //     }
+            
+            
+        //     // Check if nbhrs with coreness >= max_clique_size are part of a clique
+        //     // If so, increment clique size
+        //     if (is_clique){
+        //         i.set_weight(1);
+        //         curr_size += 1;
+        //         atomicMax(&max_clique_size, curr_size);
+        //     }
+            
+        // }
     }
 };
 
