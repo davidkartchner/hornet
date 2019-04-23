@@ -59,8 +59,7 @@ struct ActiveVertices { // Create data structure to keep track of active vertice
     }
 };
 
-struct FixedCoreNumVertices{
-    vid_t *core_number;
+struct FixedCoreNumVerticuint32_t  vid_t *core_number;
     uint32_t *curr_coreness;
     TwoLevelQueue<vid_t> vertex_frontier;
 
@@ -96,8 +95,7 @@ struct FixedCoreNumVertices{
 //     return is_clique;
 // }
 
-struct GetLocalClique{
-    vid_t *core_number;
+struct GetLocalCliquint32_t  vid_t *core_number;
     uint32_t max_clique_size;
 
     OPERATOR(Vertex &v){
@@ -164,8 +162,7 @@ struct PeelVertices { // Data structure to keep track of vertices to peel off
 };
 
 struct CoreRemoveVertices { // Data structure to keep track of vertices to peel off
-    vid_t *vertex_pres;
-    vid_t *core_number;
+    vid_t *vertex_pruint32_t  vid_t *core_number;
     uint32_t peel;
     
     OPERATOR(Vertex &v) { // Mark present vertices with insufficicnt degree for peeling
@@ -200,8 +197,7 @@ struct DecrementDegree {  // Struct to decrement degrees of every vertex attache
     }
 };
 
-struct UpdateCoreNumber{ // Update the core number of each vertex peeled off in current iteration
-    vid_t *core_number;
+struct UpdateCoreNumber{ // Update the core number of each vertex peeled off in current iteratuint32_t  vid_t *core_number;
     vid_t *vertex_pres;
     uint32_t peel;
 
@@ -317,8 +313,7 @@ void get_core_numbers(HornetGraph &hornet,
     TwoLevelQueue<vid_t> &iter_queue,
     load_balancing::VertexBased1 load_balancing,
     vid_t *deg,
-    vid_t *vertex_pres,
-    vid_t *core_number,
+    vid_t *vertex_pruint32_t  vid_t *core_number,
     uint32_t *max_peel){
 
     
@@ -348,7 +343,7 @@ void get_core_numbers(HornetGraph &hornet,
         }
 
     }
-    max_peel = *peel;
+    *max_peel = peel;
 }
 
 
@@ -357,7 +352,7 @@ void max_clique_heuristic(HornetGraph &hornet,
     TwoLevelQueue<vid_t> &vertex_frontier,
     load_balancing::VertexBased1 load_balancing,
     vid_t *vertex_pres,
-    vid_t *core_number,
+    uint32_t *core_number,
     uint32_t *max_clique_size, 
     uint32_t *peel,
     int *batch_size){
@@ -465,7 +460,7 @@ void KCore::run() {
         max_clique_heuristic(hornet, hd_data, vertex_frontier, load_balancing,
                              vertex_pres, vertex_core_number, &temp_clique_size, &peel, &batch_size);
 
-        atomicMax(max_clique_size, temp_clique_size)
+        atomicMax(max_clique_size, temp_clique_size);
 
         std::cout << "Current Max Clique: " << max_clique_size << "\n";
 
