@@ -79,12 +79,12 @@ struct FixedCoreNumVertices{
 
 
 struct InitializeOffsets{
-    vid_t *vertex_nbhr_offsets;
+    int *vertex_nbhr_offsets;
     // vid_t *vertex_degrees;
     HostDeviceVar<KCoreData> hd;
 
     OPERATOR(Vertex &v){
-        int deg = v.degree();
+        uint32_t deg = v.degree();
         vid_t id = v.id();
         vertex_nbhr_offsets[id] = hd().counter;
         atomicAdd(hd().counter, deg);
