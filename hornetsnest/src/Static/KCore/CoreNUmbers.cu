@@ -60,8 +60,8 @@ struct ActiveVertices { // Create data structure to keep track of active vertice
 };
 
 struct FixedCoreNumVertices{
-    uint32_t *core_number;
-    uint32_t *curr_coreness;
+    int *core_number;
+    int *curr_coreness;
     TwoLevelQueue<vid_t> vertex_frontier;
 
     OPERATOR(Vertex &v){
@@ -97,8 +97,8 @@ struct FixedCoreNumVertices{
 // }
 
 struct GetLocalClique{
-    uint32_t *core_number;
-    uint16_t max_clique_size;
+    int *core_number;
+    int max_clique_size;
 
     OPERATOR(Vertex &v){
         // construct std::set of neighbors of current vertex
@@ -107,7 +107,7 @@ struct GetLocalClique{
             whether it's in the max clique
         */
 
-        uint32_t curr_size = 1;
+        int curr_size = 1;
         // Make sure vertex has coreness >= max_clique_size before inserting
         // for (degree_t i=0; i<v.degree(); i++)
         for (Edge::iterator i = v.edge_begin(); i != v.edge_end(); i++){
@@ -149,7 +149,7 @@ struct GetLocalClique{
 struct PeelVertices { // Data structure to keep track of vertices to peel off
     vid_t *vertex_pres;
     vid_t *deg;
-    uint32_t peel;
+    int peel;
     TwoLevelQueue<vid_t> peel_queue;
     TwoLevelQueue<vid_t> iter_queue;
     
@@ -165,8 +165,8 @@ struct PeelVertices { // Data structure to keep track of vertices to peel off
 
 struct CoreRemoveVertices { // Data structure to keep track of vertices to peel off
     vid_t *vertex_pres;
-    uint32_t *core_number;
-    uint32_t peel;
+    int *core_number;
+    int peel;
     
     OPERATOR(Vertex &v) { // Mark present vertices with insufficicnt degree for peeling
         vid_t id = v.id();
@@ -201,9 +201,9 @@ struct DecrementDegree {  // Struct to decrement degrees of every vertex attache
 };
 
 struct UpdateCoreNumber{ // Update the core number of each vertex peeled off in current iteration
-    uint32_t *core_number;
+    int *core_number;
     vid_t *vertex_pres;
-    uint32_t peel;
+    int peel;
 
     OPERATOR(Vertex &v){
         vid_t id = v.id();
@@ -318,15 +318,15 @@ void get_core_numbers(HornetGraph &hornet,
     load_balancing::VertexBased1 load_balancing,
     vid_t *deg,
     vid_t *vertex_pres,
-    uint32_t *core_number,
-    uint32_t *max_peel){
+    int *core_number,
+    int *max_peel){
 
     
     forAllVertices(hornet, ActiveVertices { vertex_pres, deg, active_queue }); // Get active vertices in parallel (puts in input queue)
     active_queue.swap(); // Swap input to output queue
 
     int n_active = active_queue.size();
-    uint32_t peel = 0;
+    int peel = 0;
 
     while (n_active > 0) {
         // Why do we use a particular queue in forAllVertices?  Does it go through all vertices in this queue?
@@ -357,12 +357,12 @@ void max_clique_heuristic(HornetGraph &hornet,
     TwoLevelQueue<vid_t> &vertex_frontier,
     load_balancing::VertexBased1 load_balancing,
     vid_t *vertex_pres,
-    uint32_t *core_number,
-    uint16_t *max_clique_size, 
-    uint32_t *peel,
+    int *core_number,
+    int *max_clique_size, 
+    int *peel,
     int *batch_size){
 
-    uint32_t clique_size = 0;
+    int clique_size = 0;
     clique_size++;
     // while (vertex_frontier.size() == 0){
         forAllVertices(hornet, FixedCoreNumVertices{ core_number, peel, vertex_frontier });   
@@ -375,7 +375,7 @@ void max_clique_heuristic(HornetGraph &hornet,
                 forAllVertices(hornet, vertex_frontier, GetLocalClique { core_number, clique_size });
 
             // Remove vertices without sufficiently high core number 
-            // uint32_t *curr_max = clique_size; 
+            // int *curr_max = clique_size; 
             forAllVertices(hornet, CoreRemoveVertices { vertex_pres, core_number, clique_size });
             forAllEdges(hornet, SmallCoreEdges { vertex_pres, hd }, load_balancing);
         }
@@ -394,11 +394,11 @@ void KCore::run() {
     omp_set_num_threads(72);
     vid_t *src     = new vid_t[hornet.nE()];
     vid_t *dst     = new vid_t[hornet.nE()];
-    uint32_t len = hornet.nE() / 2 + 1;
-    // uint32_t peel = new uint32_t;
-    uint32_t ne = hornet.nE();
+    int len = hornet.nE() / 2 + 1;
+    // int peel = new int;
+    int ne = hornet.nE();
     std::cout << "ne: " << ne << std::endl;
-    // uint32_t max_clique_size = new uint32_t;
+    // int max_clique_size = new int;
     
 
     
@@ -441,10 +441,10 @@ void KCore::run() {
 
 
     // Get vertex core numbers
-    uint32_t peel = 0;
-    uint16_t max_clique_size = 0;
+    int peel = 0;
+    int max_clique_size = 0;
     max_clique_size++;
-    uint32_t temp_clique_size;
+    int temp_clique_size;
     get_core_numbers(hornet, peel_vqueue, active_queue, iter_queue, 
         load_balancing, deg, vertex_pres, core_number, &peel);
     gpu::memsetZero(hd_data().counter);
