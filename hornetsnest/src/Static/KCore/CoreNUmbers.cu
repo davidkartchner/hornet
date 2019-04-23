@@ -24,12 +24,12 @@ KCore::KCore(HornetGraph &hornet) : // Constructor
     gpu::allocate(vertex_color, hornet.nV());
     gpu::allocate(vertex_deg, hornet.nV());
     gpu::allocate(vertex_core_number, hornet.nV()); // Keep track of core numbers of vertices
-    gpu::allocate(vertex_nbr_number, hornet.nV()); // Keep track of clique numbers of vertices
+    // gpu::allocate(vertex_nbr_number, hornet.nV()); // Keep track of clique numbers of vertices
     gpu::allocate(hd_data().src,    hornet.nE()); // Allocate space for endpoints of edges and counter
     gpu::allocate(hd_data().dst,    hornet.nE());
     gpu::allocate(hd_data().counter, 1);
     gpu::allocate(edge_in_clique,    hornet.nE());
-    gpu::allocate(vertex_nbhr_offsets,    hornet.nE());
+    gpu::allocate(vertex_nbhr_offsets,    hornet.nV());
     // gpu::allocate(max_clique_size, 1);
 }
 
@@ -38,7 +38,7 @@ KCore::~KCore() { // Deconstructor, frees up all GPU memory used by algorithm
     gpu::free(vertex_color);
     gpu::free(vertex_deg);
     gpu::free(vertex_core_number);
-    gpu::free(vertex_nbr_number); 
+    // gpu::free(vertex_nbr_number); 
     gpu::free(hd_data().src);
     gpu::free(hd_data().dst);
     gpu::free(edge_in_clique);
@@ -424,17 +424,23 @@ void KCore::run() {
     auto deg = vertex_deg;
     auto color = vertex_color;
     auto core_number = vertex_core_number;
+    auto offsets = vertex_nbhr_offsets;
+    auto clique_edges = edge_in_clique;
     
     
     // What does this do?
     forAllnumV(hornet, [=] __device__ (int i){ pres[i] = 0; } );
     forAllnumV(hornet, [=] __device__ (int i){ deg[i] = 0; } );
     forAllnumV(hornet, [=] __device__ (int i){ color[i] = 0; } );
+    forAllnumV(hornet, [=] __device__ (int i){ offsets[i] = 0; } );
+    forAllnumE(hornet, [=] __device__ (int i){ clique_edges[i] = false; } );
 
     Timer<DEVICE> TM;
     Timer<DEVICE> Tclique;
     TM.start();
 
+
+    forAllVertices(hornet, InitializeOffsets { offsets, hd_data });
     /* Begin degree 1 vertex preprocessing optimization */ 
     // Find vertices of degree 1.
     forAllVertices(hornet, GetDegOne { vqueue, vertex_color });
