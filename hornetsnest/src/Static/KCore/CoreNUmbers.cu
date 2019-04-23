@@ -84,10 +84,10 @@ struct InitializeOffsets{
     HostDeviceVar<KCoreData> hd;
 
     OPERATOR(Vertex &v){
-        // int deg = v.degree();
+        int deg = v.degree();
         vid_t id = v.id();
-        vertex_nbhr_offsets[id] = hd().csr_offsets()[id];
-        // atomicAdd(hd().counter, deg);
+        vertex_nbhr_offsets[id] = hd().counter;
+        atomicAdd(hd().counter, deg);
     }
 
 };
