@@ -28,7 +28,7 @@ KCore::KCore(HornetGraph &hornet) : // Constructor
     gpu::allocate(hd_data().src,    hornet.nE()); // Allocate space for endpoints of edges and counter
     gpu::allocate(hd_data().dst,    hornet.nE());
     gpu::allocate(hd_data().counter, 1);
-    gpu::allocate(max_clique_size, 1);
+    // gpu::allocate(max_clique_size, 1);
 }
 
 KCore::~KCore() { // Deconstructor, frees up all GPU memory used by algorithm
@@ -394,8 +394,8 @@ void KCore::run() {
     uint32_t ne = hornet.nE();
     std::cout << "ne: " << ne << std::endl;
     // uint32_t max_clique_size = new uint32_t;
-    auto clique_size = max_clique_size;
-    clique_size = 1;
+    uint32_t clique_size = (uint32_t)1;
+
     
     auto pres = vertex_pres;
     auto deg = vertex_deg;
@@ -451,13 +451,13 @@ void KCore::run() {
     
     Tclique.start();
     // Begin actual clique heuristic algorithm
-    while (peel >= max_clique_size) {
+    while (peel >= clique_size) {
         int batch_size = 0;
 
         max_clique_heuristic(hornet, hd_data, vertex_frontier, load_balancing,
-                             vertex_pres, vertex_core_number, &max_clique_size, &peel, &batch_size);
+                             vertex_pres, vertex_core_number, &clique_size, &peel, &batch_size);
 
-        std::cout << "Current Max Clique: " << max_clique_size << "\n";
+        std::cout << "Current Max Clique: " << clique_size << "\n";
 
         oper_bidirect_batch(hornet, hd_data().src, hd_data().dst, batch_size, DELETE);
         gpu::memsetZero(hd_data().counter);
@@ -465,6 +465,7 @@ void KCore::run() {
     }
     Tclique.stop();
     Tclique.print("Clique Heuristic");
+    std::cout << "Max Clique Found: " << clique_size << std::endl;
 }
 
 void KCore::release() {
