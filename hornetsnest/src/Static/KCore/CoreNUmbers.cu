@@ -348,7 +348,7 @@ void get_core_numbers(HornetGraph &hornet,
         }
 
     }
-    max_peel = peel;
+    max_peel = *peel;
 }
 
 
@@ -362,6 +362,8 @@ void max_clique_heuristic(HornetGraph &hornet,
     uint32_t *peel,
     int *batch_size){
 
+    uint32_t clique_size = 0;
+    clique_size++;
     // while (vertex_frontier.size() == 0){
         forAllVertices(hornet, FixedCoreNumVertices{ core_number, peel, vertex_frontier });   
         std::cout << "Vertex Frontier Size before swap: " << vertex_frontier.size() << std::endl;     
@@ -370,11 +372,11 @@ void max_clique_heuristic(HornetGraph &hornet,
 
         if (vertex_frontier.size() > 0) {
             // Get clique numbers of vertices of frontier core number
-                forAllVertices(hornet, vertex_frontier, GetLocalClique { core_number, max_clique_size });
+                forAllVertices(hornet, vertex_frontier, GetLocalClique { core_number, clique_size });
 
             // Remove vertices without sufficiently high core number 
-            // uint32_t *curr_max = max_clique_size; 
-            forAllVertices(hornet, CoreRemoveVertices { vertex_pres, core_number, max_clique_size });
+            // uint32_t *curr_max = clique_size; 
+            forAllVertices(hornet, CoreRemoveVertices { vertex_pres, core_number, clique_size });
             forAllEdges(hornet, SmallCoreEdges { vertex_pres, hd }, load_balancing);
         }
     //     peel--;
@@ -382,6 +384,7 @@ void max_clique_heuristic(HornetGraph &hornet,
     int size = 0;
     cudaMemcpy(&size, hd().counter, sizeof(int), cudaMemcpyDeviceToHost);
     *batch_size = size;
+    *max_clique_size = clique_size;
     // std::cout << "Max Clique Found: " << max_clique_size << std::endl;
 }
 
@@ -439,8 +442,9 @@ void KCore::run() {
 
     // Get vertex core numbers
     uint32_t peel = 0;
-    uint32_t clique_size = 0;
-    clique_size++;
+    uint32_t max_clique_size = 0;
+    max_clique_size++;
+    uint32_t temp_clique_size;
     get_core_numbers(hornet, peel_vqueue, active_queue, iter_queue, 
         load_balancing, deg, vertex_pres, core_number, &peel);
     gpu::memsetZero(hd_data().counter);
@@ -455,13 +459,15 @@ void KCore::run() {
     
     Tclique.start();
     // Begin actual clique heuristic algorithm
-    while (peel >= clique_size) {
+    while (peel >= max_clique_size) {
         int batch_size = 0;
 
         max_clique_heuristic(hornet, hd_data, vertex_frontier, load_balancing,
-                             vertex_pres, vertex_core_number, &clique_size, &peel, &batch_size);
+                             vertex_pres, vertex_core_number, &temp_clique_size, &peel, &batch_size);
 
-        std::cout << "Current Max Clique: " << clique_size << "\n";
+        atomicMax(max_clique_size, temp_clique_size)
+
+        std::cout << "Current Max Clique: " << max_clique_size << "\n";
 
         oper_bidirect_batch(hornet, hd_data().src, hd_data().dst, batch_size, DELETE);
         gpu::memsetZero(hd_data().counter);
@@ -469,7 +475,7 @@ void KCore::run() {
     }
     Tclique.stop();
     Tclique.print("Clique Heuristic");
-    std::cout << "Max Clique Found: " << clique_size << std::endl;
+    std::cout << "Max Clique Found: " << max_clique_size << std::endl;
 }
 
 void KCore::release() {
