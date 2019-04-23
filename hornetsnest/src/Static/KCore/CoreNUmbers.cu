@@ -346,7 +346,9 @@ void get_core_numbers(HornetGraph &hornet,
         } else {
             forAllEdges(hornet, iter_queue, DecrementDegree { deg }, load_balancing); // Go through vertices in iter_queue and decrement the degree of their nbhrs
         }
+
     }
+    max_peel = peel;
 }
 
 
