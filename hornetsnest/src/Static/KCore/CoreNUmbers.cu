@@ -59,7 +59,7 @@ struct ActiveVertices { // Create data structure to keep track of active vertice
     }
 };
 
-struct FixedCoreNumVerticuint32_t  vid_t *core_number;
+struct FixedCoreNumVerticuint32_t  uint32_t *core_number;
     uint32_t *curr_coreness;
     TwoLevelQueue<vid_t> vertex_frontier;
 
@@ -95,7 +95,7 @@ struct FixedCoreNumVerticuint32_t  vid_t *core_number;
 //     return is_clique;
 // }
 
-struct GetLocalCliquint32_t  vid_t *core_number;
+struct GetLocalCliquint32_t  uint32_t *core_number;
     uint32_t max_clique_size;
 
     OPERATOR(Vertex &v){
@@ -162,7 +162,7 @@ struct PeelVertices { // Data structure to keep track of vertices to peel off
 };
 
 struct CoreRemoveVertices { // Data structure to keep track of vertices to peel off
-    vid_t *vertex_pruint32_t  vid_t *core_number;
+    vid_t *vertex_pruint32_t  uint32_t *core_number;
     uint32_t peel;
     
     OPERATOR(Vertex &v) { // Mark present vertices with insufficicnt degree for peeling
@@ -197,7 +197,7 @@ struct DecrementDegree {  // Struct to decrement degrees of every vertex attache
     }
 };
 
-struct UpdateCoreNumber{ // Update the core number of each vertex peeled off in current iteratuint32_t  vid_t *core_number;
+struct UpdateCoreNumber{ // Update the core number of each vertex peeled off in current iteratuint32_t  uint32_t *core_number;
     vid_t *vertex_pres;
     uint32_t peel;
 
@@ -313,7 +313,7 @@ void get_core_numbers(HornetGraph &hornet,
     TwoLevelQueue<vid_t> &iter_queue,
     load_balancing::VertexBased1 load_balancing,
     vid_t *deg,
-    vid_t *vertex_pruint32_t  vid_t *core_number,
+    vid_t *vertex_pruint32_t  uint32_t *core_number,
     uint32_t *max_peel){
 
     
