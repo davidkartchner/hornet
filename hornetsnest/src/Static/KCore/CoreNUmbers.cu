@@ -122,9 +122,9 @@ struct GetLocalClique{
                     vid_t id = *i.src_id();
 
                     #pragma omp parallel for
-                    for (Edge::iterator j = u.edge_begin(); j != u.edge_end(); j++){
+                    for (eid_t j = u.edge_begin(); j != u.edge_end(); j++){
                         if (*j.dst_id() == id){
-                            bool found = true;
+                            found = true;
                         }
                     }
                     if (!found){
