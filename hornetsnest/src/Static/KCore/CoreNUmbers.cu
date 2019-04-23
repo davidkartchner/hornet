@@ -24,10 +24,12 @@ KCore::KCore(HornetGraph &hornet) : // Constructor
     gpu::allocate(vertex_color, hornet.nV());
     gpu::allocate(vertex_deg, hornet.nV());
     gpu::allocate(vertex_core_number, hornet.nV()); // Keep track of core numbers of vertices
-    // gpu::allocate(vertex_clique_number, hornet.nV()); // Keep track of clique numbers of vertices
+    gpu::allocate(vertex_nbr_number, hornet.nV()); // Keep track of clique numbers of vertices
     gpu::allocate(hd_data().src,    hornet.nE()); // Allocate space for endpoints of edges and counter
     gpu::allocate(hd_data().dst,    hornet.nE());
     gpu::allocate(hd_data().counter, 1);
+    gpu::allocate(edge_clique,    hornet.nE());
+    gpu::allocate(vertex_nbhr_offsets,    hornet.nE());
     // gpu::allocate(max_clique_size, 1);
 }
 
@@ -36,9 +38,11 @@ KCore::~KCore() { // Deconstructor, frees up all GPU memory used by algorithm
     gpu::free(vertex_color);
     gpu::free(vertex_deg);
     gpu::free(vertex_core_number);
-    // gpu::free(vertex_clique_number); 
+    gpu::free(vertex_nbr_number); 
     gpu::free(hd_data().src);
     gpu::free(hd_data().dst);
+    gpu::free(edge_in_clique);
+    gpu::free(vertex_nbhrs)
 }
 
 
@@ -74,6 +78,19 @@ struct FixedCoreNumVertices{
 };
 
 
+struct InitializeOffsets{
+    vid_t *vertex_nbhr_offsets;
+    // vid_t *vertex_degrees;
+    HostDeviceVar<KCoreData> hd;
+
+    OPERATOR(Vertex &v){
+        // int deg = v.degree();
+        vid_t id = v.id();
+        vertex_nbhr_offsets[id] = hd().device_csr_offsets()[id];
+        // atomicAdd(hd().counter, deg);
+    }
+
+};
 // bool check_clique(Vertex &v, Vertex &u){
 //     #pragma omp parallel for
 //     bool is_clique = true;
@@ -422,6 +439,8 @@ void KCore::run() {
     // Find vertices of degree 1.
     forAllVertices(hornet, GetDegOne { vqueue, vertex_color });
     vqueue.swap();
+
+    gpu::memsetZero(hd_data().counter);
 
     // Find the edges incident to these vertices.
     gpu::memsetZero(hd_data().counter);  // reset counter. 
