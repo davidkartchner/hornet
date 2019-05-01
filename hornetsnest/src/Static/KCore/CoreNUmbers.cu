@@ -24,7 +24,7 @@ KCore::KCore(HornetGraph &hornet) : // Constructor
     gpu::allocate(vertex_color, hornet.nV());
     gpu::allocate(vertex_deg, hornet.nV());
     gpu::allocate(vertex_core_number, hornet.nV()); // Keep track of core numbers of vertices
-    // gpu::allocate(vertex_nbr_number, hornet.nV()); // Keep track of clique numbers of vertices
+    // gpu::allocate(vertex_nbhr_pointer, hornet.nV()); // Keep track of clique numbers of vertices
     gpu::allocate(hd_data().src,    hornet.nE()); // Allocate space for endpoints of edges and counter
     gpu::allocate(hd_data().dst,    hornet.nE());
     gpu::allocate(hd_data().counter, 1);
@@ -113,10 +113,72 @@ struct InitializeOffsets{
 //     return is_clique;
 // }
 
+// __device__ __forceinline__
+// void workPerBlock(vid_t numVertices,
+//                   vid_t* __restrict__ outMpStart,
+//                   vid_t* __restrict__ outMpEnd,
+//                   int blockSize) {
+//     vid_t       verticesPerMp = numVertices / gridDim.x;
+//     vid_t     remainderBlocks = numVertices % gridDim.x;
+//     vid_t   extraVertexBlocks = (blockIdx.x > remainderBlocks) ? remainderBlocks
+//                                                                : blockIdx.x;
+//     vid_t regularVertexBlocks = (blockIdx.x > remainderBlocks) ?
+//                                     blockIdx.x - remainderBlocks : 0;
+
+//     vid_t mpStart = (verticesPerMp + 1) * extraVertexBlocks +
+//                      verticesPerMp * regularVertexBlocks;
+//     *outMpStart   = mpStart;
+//     *outMpEnd     = mpStart + verticesPerMp + (blockIdx.x < remainderBlocks);
+// }
+
+
+
+// template<typename HornetDevice>
+// __global__ void GetLocalClique(
+//     HornetDevice hornet ,
+//     uint32_t *core_number,
+//     int *vertex_nbhr_offsets,
+//     bool *edge_in_clique,
+//     uint32_t max_clique_size,
+//     int N){
+
+// 	int k = threadIdx.x + blockIdx.x *blockDim.x;
+//     if (k>=N) return;
+     
+//     for 
+
+
+
+//     }
+
+
+// run(){
+//             const int BLOCK_SIZE = 256;
+//             int blocks = (elements)/BLOCK_SIZE + (((elements)%BLOCK_SIZE)?1:0);
+
+//               GetLocalClique<<<blocks,BLOCK_SIZE>>>(hornet.device_side(),...,elements);
+
+	
+// }
+
+struct GetPointersAndDegrees{
+    vid_t *vertex_nbhr_pointer;
+    vid_t *deg;
+
+    OPERATOR(Vertex &v){
+        id = v.id();
+        vertex_nbhr_pointer[id] = v.neighbor_ptr();
+        deg[id] = v.degree();
+    }
+};
+
+
 struct GetLocalClique{
     uint32_t *core_number;
     int *vertex_nbhr_offsets;
     bool *edge_in_clique;
+    vid_t *vertex_nbhr_pointer;
+    vid_t *deg;
     uint32_t max_clique_size;
 
 
@@ -131,27 +193,28 @@ struct GetLocalClique{
 
         // Make sure vertex has coreness >= max_clique_size before inserting
         vid_t* vNeighPtr = v.neighbor_ptr();
-        int length_v = v.degree();
-        int offset = vertex_nbhr_offsets[v.id()];
-        for (int i = 0; i < length_v; i++){
+        vid_t v_id = v.id()
+        int length_v = deg[v_id];
+        int offset = vertex_nbhr_offsets[v_id];
+        for (vid_t i = 0; i < length_v; i++){
             vid_t u_id = vNeighPtr[i]; 
-            Vertex u = hornet.vertex(u_id); // How can I get this?
+            // Vertex u = hornet.vertex(u_id); // How can I get this?
 
             // Get nbhr info for u
-            vid_t* uNeighPtr = u.neighbor_ptr();
-            int length_u = v.degree();
+            vid_t* uNeighPtr = u.vertex_nbhr_pointer[u_id];
+            int length_u = deg[u_id];
 
             // Loop through neibhbors of v currently in clique and check to see if also nbhrs of u
             #pragma omp parallel for
             bool is_clique = true;
-            for (int j = 0; j < length_v; j++){
+            for (vid_t j = 0; j < length_v; j++){
                 bool found = false;
                 if (edge_in_clique[offset + j]){
                     vid_t w_id = vNeighPtr[j];
 
                     // Check if 
                     #pragma omp parallel for
-                    for (int k = 0; k < length_u; k++){
+                    for (vid_t k = 0; k < length_u; k++){
                         if (uNeighPtr[k] == w_id){
                             found = true;
                             break;
@@ -163,7 +226,6 @@ struct GetLocalClique{
                 }
             }
             
-            
             // Check if nbhrs with coreness >= max_clique_size are part of a clique
             // If so, increment clique size
             if (is_clique){
@@ -171,45 +233,7 @@ struct GetLocalClique{
                 curr_size += 1;
                 atomicMax(&max_clique_size, curr_size);
             }
-            
         }
-        
-
-        // // Make sure vertex has coreness >= max_clique_size before inserting
-        // uint32_t curr_size = 1;
-        // for (eid_t i = v.edge_begin(); i != v.edge_end(); i++){
-        //     Vertex u = i.dst();
-        //     vid_t id = u.id();
-
-        //     #pragma omp parallel for
-        //     bool is_clique = true;
-        //     for (eid_t k = v.edge_begin(); k != v.edge_end(); k++){
-        //         bool found = false;
-        //         if (WeightT *k.weight() == 1){
-        //             vid_t id = *k.src_id();
-
-        //             #pragma omp parallel for
-        //             for (eid_t j = u.edge_begin(); j != u.edge_end(); j++){
-        //                 if (*j.dst_id() == id){
-        //                     found = true;
-        //                 }
-        //             }
-        //             if (!found){
-        //                 is_clique = false;
-        //             }
-        //         }
-        //     }
-            
-            
-        //     // Check if nbhrs with coreness >= max_clique_size are part of a clique
-        //     // If so, increment clique size
-        //     if (is_clique){
-        //         i.set_weight(1);
-        //         curr_size += 1;
-        //         atomicMax(&max_clique_size, curr_size);
-        //     }
-            
-        // }
     }
 };
 
@@ -426,6 +450,8 @@ void max_clique_heuristic(HornetGraph &hornet,
     vid_t *vertex_pres,
     uint32_t *core_number,
     int *vertex_nbhr_offsets,
+    vid_t *vertex_nbhr_pointer,
+    vid_t *vertex_degree,
     bool *edge_in_clique,
     uint32_t *max_clique_size, 
     uint32_t *peel,
@@ -442,7 +468,7 @@ void max_clique_heuristic(HornetGraph &hornet,
 
         if (vertex_frontier.size() > 0) {
             // Get clique numbers of vertices of frontier core number
-            forAllVertices(hornet, vertex_frontier, GetLocalClique { core_number, vertex_nbhr_offsets, edge_in_clique, clique_size });
+            forAllVertices(hornet, vertex_frontier, GetLocalClique { core_number, vertex_nbhr_offsets, edge_in_clique, vertex_nbhr_pointer, vertex_degree, clique_size });
 
             // Remove vertices without sufficiently high core number 
             // uint32_t *curr_max = clique_size; 
@@ -477,6 +503,7 @@ void KCore::run() {
     auto color = vertex_color;
     auto core_number = vertex_core_number;
     auto offsets = vertex_nbhr_offsets;
+    auto nbhr_pointer = vertex_nbhr_pointer;
     auto clique_edges = edge_in_clique;
     
     
@@ -485,6 +512,7 @@ void KCore::run() {
     forAllnumV(hornet, [=] __device__ (int i){ deg[i] = 0; } );
     forAllnumV(hornet, [=] __device__ (int i){ color[i] = 0; } );
     forAllnumV(hornet, [=] __device__ (int i){ offsets[i] = 0; } );
+    forAllnumV(hornet, [=] __device__ (int i){ nbhr_pointer[i] = 0; } );
     forAllnumE(hornet, [=] __device__ (int i){ clique_edges[i] = false; } );
 
     Timer<DEVICE> TM;
@@ -540,8 +568,11 @@ void KCore::run() {
     while (peel >= max_clique_size) {
         int batch_size = 0;
 
+        forAllVertices(hornet, GetPointersAndDegrees { nbhr_pointer, deg });
+
         max_clique_heuristic(hornet, hd_data, vertex_frontier, load_balancing,
-                             vertex_pres, vertex_core_number, offsets, clique_edges, &temp_clique_size, &peel, &batch_size);
+                             vertex_pres, vertex_core_number, offsets, nbhr_pointer,  
+                             deg, clique_edges, &temp_clique_size, &peel, &batch_size);
 
         atomicMax(&max_clique_size, temp_clique_size);
 

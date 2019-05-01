@@ -276,13 +276,13 @@ void devicecuStaticTriangleCounting(HornetDevice hornet,
                            int shifter,
                            int cutoff,
                            HostDeviceVar<TriangleData> hd_data) {
-    TriangleData* __restrict__ devData = hd_data.ptr();
+    TriangleData* __restrict__ devData = hd_data.ptr(); // Location to find triangle data (?)
     vid_t nv = hornet.nV();
     // Partitioning the work to the multiple thread of a single GPU processor.
     //The threads should get a near equal number of the elements
     //to intersect - this number will be off by no more than one.
     int tx = threadIdx.x;
-    vid_t this_mp_start, this_mp_stop;
+    vid_t this_mp_start, this_mp_stop; // Start and stop indices of what (?)
 
     const int blockSize = blockDim.x;
     workPerBlock(nv, &this_mp_start, &this_mp_stop, blockSize);

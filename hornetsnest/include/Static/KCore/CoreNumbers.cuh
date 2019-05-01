@@ -43,6 +43,7 @@ private:
     vid_t *vertex_pres { nullptr };
     vid_t *vertex_color { nullptr };
     vid_t *vertex_deg { nullptr };
+    vid_t *vertex_nbhr_pointer { nullptr };
     uint32_t *vertex_core_number { nullptr };
     int *vertex_nbhr_offsets { nullptr };
     bool *edge_in_clique { nullptr };
