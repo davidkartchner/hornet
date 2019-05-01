@@ -24,7 +24,7 @@ KCore::KCore(HornetGraph &hornet) : // Constructor
     gpu::allocate(vertex_color, hornet.nV());
     gpu::allocate(vertex_deg, hornet.nV());
     gpu::allocate(vertex_core_number, hornet.nV()); // Keep track of core numbers of vertices
-    // gpu::allocate(vertex_nbhr_pointer, hornet.nV()); // Keep track of clique numbers of vertices
+    gpu::allocate(vertex_nbhr_pointer, hornet.nV()); // Keep track of clique numbers of vertices
     gpu::allocate(hd_data().src,    hornet.nE()); // Allocate space for endpoints of edges and counter
     gpu::allocate(hd_data().dst,    hornet.nE());
     gpu::allocate(hd_data().counter, 1);
@@ -38,7 +38,7 @@ KCore::~KCore() { // Deconstructor, frees up all GPU memory used by algorithm
     gpu::free(vertex_color);
     gpu::free(vertex_deg);
     gpu::free(vertex_core_number);
-    // gpu::free(vertex_nbr_number); 
+    gpu::free(vertex_nbhr_pointer); 
     gpu::free(hd_data().src);
     gpu::free(hd_data().dst);
     gpu::free(edge_in_clique);
@@ -162,12 +162,12 @@ struct InitializeOffsets{
 // }
 
 struct GetPointersAndDegrees{
-    vid_t* vertex_nbhr_pointer;
+    vid_t *vertex_nbhr_pointer;
     vid_t *deg;
 
     OPERATOR(Vertex &v){
         vid_t id = v.id();
-        vertex_nbhr_pointer[id] = &v.neighbor_ptr();
+        vertex_nbhr_pointer[id] = v.neighbor_ptr();
         deg[id] = v.degree();
     }
 };
@@ -512,7 +512,7 @@ void KCore::run() {
     forAllnumV(hornet, [=] __device__ (int i){ deg[i] = 0; } );
     forAllnumV(hornet, [=] __device__ (int i){ color[i] = 0; } );
     forAllnumV(hornet, [=] __device__ (int i){ offsets[i] = 0; } );
-    forAllnumV(hornet, [=] __device__ (int i){ nbhr_pointer[i] = 0; } );
+    // forAllnumV(hornet, [=] __device__ (int i){ nbhr_pointer[i] = 0; } );
     forAllnumE(hornet, [=] __device__ (int i){ clique_edges[i] = false; } );
 
     Timer<DEVICE> TM;
