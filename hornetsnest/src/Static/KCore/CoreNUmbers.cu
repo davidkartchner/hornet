@@ -503,7 +503,7 @@ void KCore::run() {
     auto color = vertex_color;
     auto core_number = vertex_core_number;
     auto offsets = vertex_nbhr_offsets;
-    auto nbhr_pointer = vertex_nbhr_pointer;
+    vid_t** nbhr_pointer;
     auto clique_edges = edge_in_clique;
     
     
