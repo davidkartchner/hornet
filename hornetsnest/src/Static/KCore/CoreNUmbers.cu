@@ -162,7 +162,7 @@ struct InitializeOffsets{
 // }
 
 struct GetPointersAndDegrees{
-    vid_t vertex_nbhr_pointer;
+    vid_t* vertex_nbhr_pointer;
     vid_t *deg;
 
     OPERATOR(Vertex &v){
