@@ -166,7 +166,7 @@ struct GetPointersAndDegrees{
     vid_t *deg;
 
     OPERATOR(Vertex &v){
-        id = v.id();
+        vid_t id = v.id();
         vertex_nbhr_pointer[id] = v.neighbor_ptr();
         deg[id] = v.degree();
     }
@@ -193,16 +193,16 @@ struct GetLocalClique{
 
         // Make sure vertex has coreness >= max_clique_size before inserting
         vid_t* vNeighPtr = v.neighbor_ptr();
-        vid_t v_id = v.id()
-        int length_v = deg[v_id];
+        vid_t v_id = v.id();
+        vid_t length_v = deg[v_id];
         int offset = vertex_nbhr_offsets[v_id];
         for (vid_t i = 0; i < length_v; i++){
             vid_t u_id = vNeighPtr[i]; 
             // Vertex u = hornet.vertex(u_id); // How can I get this?
 
             // Get nbhr info for u
-            vid_t* uNeighPtr = u.vertex_nbhr_pointer[u_id];
-            int length_u = deg[u_id];
+            vid_t* uNeighPtr = vertex_nbhr_pointer[u_id];
+            vid_t length_u = deg[u_id];
 
             // Loop through neibhbors of v currently in clique and check to see if also nbhrs of u
             #pragma omp parallel for
