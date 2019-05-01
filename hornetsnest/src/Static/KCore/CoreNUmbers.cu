@@ -167,7 +167,7 @@ struct GetPointersAndDegrees{
 
     OPERATOR(Vertex &v){
         vid_t id = v.id();
-        vertex_nbhr_pointer[id] = v.neighbor_ptr();
+        vertex_nbhr_pointer[id] = &v.neighbor_ptr();
         deg[id] = v.degree();
     }
 };
