@@ -177,7 +177,7 @@ struct GetLocalClique{
     uint32_t *core_number;
     int *vertex_nbhr_offsets;
     bool *edge_in_clique;
-    vid_t *vertex_nbhr_pointer;
+    vid_t **vertex_nbhr_pointer;
     vid_t *deg;
     uint32_t max_clique_size;
 
