@@ -195,9 +195,7 @@ struct GetLocalClique{
         vid_t v_id = v.id();
         vid_t length_v = deg[v_id];
         int offset = vertex_nbhr_offsets[v_id];
-        printf("Offset: ");
-        printf(offset);
-        printf("\n");
+        printf("Offset: %d \n", offset);
         for (vid_t i = 0; i < length_v; i++){
             vid_t u_id = vNeighPtr[i]; 
             // Vertex u = hornet.vertex(u_id); // How can I get this?
