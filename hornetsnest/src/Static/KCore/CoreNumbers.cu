@@ -198,10 +198,11 @@ struct GetLocalClique{
         for (vid_t i = 0; i < length_v; i++){
             vid_t u_id = vNeighPtr[i]; 
             // Vertex u = hornet.vertex(u_id); // How can I get this?
-
+            std::cout << "before pointer assignment" << std::endl;
             // Get nbhr info for u
             vid_t* uNeighPtr = vertex_nbhr_pointer[u_id];
             vid_t length_u = deg[u_id];
+            std::cout << "after pointer assignment" << std::endl;
 
             // Loop through neibhbors of v currently in clique and check to see if also nbhrs of u
             #pragma omp parallel for
