@@ -195,7 +195,7 @@ struct GetLocalClique{
         vid_t v_id = v.id();
         vid_t length_v = deg[v_id];
         int offset = vertex_nbhr_offsets[v_id];
-        printf("Offset: %d \n", offset);
+        // printf("Offset: %d \n", offset);
         for (vid_t i = 0; i < length_v; i++){
             vid_t u_id = vNeighPtr[i]; 
             // Vertex u = hornet.vertex(u_id); // How can I get this?
@@ -209,7 +209,7 @@ struct GetLocalClique{
             #pragma omp parallel for
             bool is_clique = true;
             for (vid_t j = 0; j < length_v; j++){
-                // printf("Starting inner loop \n");
+                printf("Starting inner loop iteration %d of %d \n", j, length_v);
                 bool found = false;
                 
                 if (edge_in_clique[offset - length_v + j]){
@@ -229,7 +229,7 @@ struct GetLocalClique{
                     }
                 }
             }
-            
+            printf("Finished loops \n");
             // Check if nbhrs with coreness >= max_clique_size are part of a clique
             // If so, increment clique size
             if (is_clique){
