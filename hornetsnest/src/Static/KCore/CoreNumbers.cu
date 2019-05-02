@@ -236,9 +236,10 @@ struct GetLocalClique{
             // Check if nbhrs with coreness >= max_clique_size are part of a clique
             // If so, increment clique size
             if (is_clique){
-                printf("Adding vertex to clique \n");
+                
                 edge_in_clique[offset + i - length_v] = true;
                 curr_size += 1;
+                printf("Adding vertex to clique \n");
                 atomicMax(&max_clique_size, curr_size);
                 if (v_id < 100000) printf("Vertex added!\n");
             }
