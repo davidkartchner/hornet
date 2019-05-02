@@ -229,9 +229,9 @@ struct GetLocalClique{
                         is_clique = false;
                     }
                 }
-                if (v_id < 1000) printf("Ended first iteration\n");
+                // if (v_id < 1000) printf("Ended first iteration\n");
             }
-            printf("Finished loops \n");
+            printf("Finished loops: is_clique = %d and found = %d \n", is_clique, found);
             // Check if nbhrs with coreness >= max_clique_size are part of a clique
             // If so, increment clique size
             if (is_clique){
