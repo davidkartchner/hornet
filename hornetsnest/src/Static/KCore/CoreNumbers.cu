@@ -202,12 +202,13 @@ struct GetLocalClique{
             // Get nbhr info for u
             vid_t* uNeighPtr = vertex_nbhr_pointer[u_id];
             vid_t length_u = deg[u_id];
-            printf("after pointer assignment");
+            // printf("after pointer assignment\n");
 
             // Loop through neibhbors of v currently in clique and check to see if also nbhrs of u
             #pragma omp parallel for
             bool is_clique = true;
             for (vid_t j = 0; j < length_v; j++){
+                printf("Starting inner loo; \n")
                 bool found = false;
                 if (edge_in_clique[offset + j]){
                     vid_t w_id = vNeighPtr[j];
