@@ -198,7 +198,7 @@ struct GetLocalClique{
         for (vid_t i = 0; i < length_v; i++){
             vid_t u_id = vNeighPtr[i]; 
             // Vertex u = hornet.vertex(u_id); // How can I get this?
-            printf( "before pointer assignment" );
+            // printf( "before pointer assignment" );
             // Get nbhr info for u
             vid_t* uNeighPtr = vertex_nbhr_pointer[u_id];
             vid_t length_u = deg[u_id];
