@@ -575,7 +575,7 @@ void KCore::run() {
 
         std::cout << "Vertex Pointers Not Initialized Yet" << std::endl;
         forAllVertices(hornet, GetPointersAndDegrees { nbhr_pointer, deg });
-        forAllVertices(hornet, InitializeOffsets { offsets, hd_data });
+        // forAllVertices(hornet, InitializeOffsets { offsets, hd_data });
         std::cout << "Initialized Vertex Pointers" << std::endl;
 
         max_clique_heuristic(hornet, hd_data, vertex_frontier, load_balancing,
