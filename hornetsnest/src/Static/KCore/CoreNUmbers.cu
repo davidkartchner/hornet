@@ -574,8 +574,10 @@ void KCore::run() {
                              vertex_pres, vertex_core_number, offsets, nbhr_pointer,  
                              deg, clique_edges, &temp_clique_size, &peel, &batch_size);
 
-        atomicMax(&max_clique_size, temp_clique_size);
-
+        // atomicMax(&max_clique_size, temp_clique_size);
+        if (temp_clique_size > max_clique_size) {
+            max_clique_size = temp_clique_size;
+        }
         std::cout << "Current Max Clique: " << max_clique_size << "\n";
 
         oper_bidirect_batch(hornet, hd_data().src, hd_data().dst, batch_size, DELETE);
