@@ -24,7 +24,7 @@ KCore::KCore(HornetGraph &hornet) : // Constructor
     gpu::allocate(vertex_color, hornet.nV());
     gpu::allocate(vertex_deg, hornet.nV());
     gpu::allocate(vertex_core_number, hornet.nV()); // Keep track of core numbers of vertices
-    gpu::allocate(*vertex_nbhr_pointer, hornet.nV()); // Keep track of clique numbers of vertices
+    gpu::allocate(vertex_nbhr_pointer, hornet.nV()); // Keep track of clique numbers of vertices
     gpu::allocate(hd_data().src,    hornet.nE()); // Allocate space for endpoints of edges and counter
     gpu::allocate(hd_data().dst,    hornet.nE());
     gpu::allocate(hd_data().counter, 1);
@@ -503,7 +503,7 @@ void KCore::run() {
     auto color = vertex_color;
     auto core_number = vertex_core_number;
     auto offsets = vertex_nbhr_offsets;
-    vid_t** nbhr_pointer = vertex_nbhr_pointer;
+    vid_t** nbhr_pointer = *vertex_nbhr_pointer;
     auto clique_edges = edge_in_clique;
     
     
