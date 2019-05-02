@@ -85,8 +85,8 @@ struct InitializeOffsets{
     OPERATOR(Vertex &v){
         uint32_t deg = v.degree();
         vid_t id = v.id();
-        vertex_nbhr_offsets[id] = *hd().counter;
-        atomicAdd(hd().counter, deg);
+        vertex_nbhr_offsets[id] = atomicAdd(hd().counter, deg);
+        // atomicAdd(hd().counter, deg);
     }
 
 };
@@ -575,6 +575,7 @@ void KCore::run() {
 
         std::cout << "Vertex Pointers Not Initialized Yet" << std::endl;
         forAllVertices(hornet, GetPointersAndDegrees { nbhr_pointer, deg });
+        forAllVertices(hornet, InitializeOffsets { offsets, hd_data });
         std::cout << "Initialized Vertex Pointers" << std::endl;
 
         max_clique_heuristic(hornet, hd_data, vertex_frontier, load_balancing,
