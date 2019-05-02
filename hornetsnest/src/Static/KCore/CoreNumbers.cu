@@ -209,7 +209,8 @@ struct GetLocalClique{
             #pragma omp parallel for
             bool is_clique = true;
             for (vid_t j = 0; j < length_v; j++){
-                printf("Starting inner loop iteration %d of %d \n", j, length_v);
+                if (v_id < 1000) printf("Starting inner loop iteration %d of %d \n", j, length_v);
+                
                 bool found = false;
                 
                 if (edge_in_clique[offset - length_v + j]){
@@ -228,6 +229,7 @@ struct GetLocalClique{
                         is_clique = false;
                     }
                 }
+                if (v_id < 1000) printf("Ended first iteration\n");
             }
             printf("Finished loops \n");
             // Check if nbhrs with coreness >= max_clique_size are part of a clique
