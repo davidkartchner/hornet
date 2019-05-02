@@ -498,22 +498,22 @@ void KCore::run() {
     
 
     
-    auto pres = vertex_pres;
-    auto deg = vertex_deg;
-    auto color = vertex_color;
-    auto core_number = vertex_core_number;
-    auto offsets = vertex_nbhr_offsets;
-    auto nbhr_pointer = vertex_nbhr_pointer;
-    auto clique_edges = edge_in_clique;
+    // auto pres = vertex_pres;
+    // auto deg = vertex_deg;
+    // auto color = vertex_color;
+    // auto core_number = vertex_core_number;
+    // auto offsets = vertex_nbhr_offsets;
+    // auto nbhr_pointer = vertex_nbhr_pointer;
+    // auto clique_edges = edge_in_clique;
     
     
-    // What does this do?
-    forAllnumV(hornet, [=] __device__ (int i){ pres[i] = 0; } );
-    forAllnumV(hornet, [=] __device__ (int i){ deg[i] = 0; } );
-    forAllnumV(hornet, [=] __device__ (int i){ color[i] = 0; } );
-    forAllnumV(hornet, [=] __device__ (int i){ offsets[i] = 0; } );
-    // forAllnumV(hornet, [=] __device__ (int i){ nbhr_pointer[i] = **0; } );
-    forAllnumE(hornet, [=] __device__ (int i){ clique_edges[i] = false; } );
+    // // What does this do?
+    // forAllnumV(hornet, [=] __device__ (int i){ pres[i] = 0; } );
+    // forAllnumV(hornet, [=] __device__ (int i){ deg[i] = 0; } );
+    // forAllnumV(hornet, [=] __device__ (int i){ color[i] = 0; } );
+    // forAllnumV(hornet, [=] __device__ (int i){ offsets[i] = 0; } );
+    // // forAllnumV(hornet, [=] __device__ (int i){ nbhr_pointer[i] = **0; } );
+    // forAllnumE(hornet, [=] __device__ (int i){ clique_edges[i] = false; } );
     
 
     Timer<DEVICE> TM;
