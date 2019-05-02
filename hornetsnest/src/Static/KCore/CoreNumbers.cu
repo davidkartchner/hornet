@@ -208,7 +208,7 @@ struct GetLocalClique{
             #pragma omp parallel for
             bool is_clique = true;
             for (vid_t j = 0; j < length_v; j++){
-                printf("Starting inner loo; \n")
+                printf("Starting inner loo; \n");
                 bool found = false;
                 if (edge_in_clique[offset + j]){
                     vid_t w_id = vNeighPtr[j];
