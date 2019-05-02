@@ -511,7 +511,7 @@ void KCore::run() {
     forAllnumV(hornet, [=] __device__ (int i){ deg[i] = 0; } );
     forAllnumV(hornet, [=] __device__ (int i){ color[i] = 0; } );
     forAllnumV(hornet, [=] __device__ (int i){ offsets[i] = 0; } );
-    // forAllnumV(hornet, [=] __device__ (int i){ nbhr_pointer[i] = **0; } );
+    // forAllnumV(hornet, [=] __device__ (*int i){ nbhr_pointer[i] = 0; } );
     forAllnumE(hornet, [=] __device__ (int i){ clique_edges[i] = false; } );
     
 
@@ -568,6 +568,7 @@ void KCore::run() {
     while (peel >= max_clique_size) {
         int batch_size = 0;
 
+        std::cout << "Vertex Pointers Not Initialized Yet" << std::endl;
         forAllVertices(hornet, GetPointersAndDegrees { nbhr_pointer, deg });
         std::cout << "Initialized Vertex Pointers" << std::endl;
 
