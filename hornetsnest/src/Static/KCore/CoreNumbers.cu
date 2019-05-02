@@ -236,7 +236,7 @@ struct GetLocalClique{
             // Check if nbhrs with coreness >= max_clique_size are part of a clique
             // If so, increment clique size
             if (is_clique){
-                if (v_id < 100000) printf("Adding vertex to clique \n");
+                printf("Adding vertex to clique \n");
                 edge_in_clique[offset + i - length_v] = true;
                 curr_size += 1;
                 atomicMax(&max_clique_size, curr_size);
@@ -580,10 +580,10 @@ void KCore::run() {
     while (peel >= max_clique_size) {
         int batch_size = 0;
 
-        std::cout << "Vertex Pointers Not Initialized Yet" << std::endl;
+        // std::cout << "Vertex Pointers Not Initialized Yet" << std::endl;
         forAllVertices(hornet, GetPointersAndDegrees { nbhr_pointer, deg });
         // forAllVertices(hornet, InitializeOffsets { offsets, hd_data });
-        std::cout << "Initialized Vertex Pointers" << std::endl;
+        // std::cout << "Initialized Vertex Pointers" << std::endl;
 
         max_clique_heuristic(hornet, hd_data, vertex_frontier, load_balancing,
                              vertex_pres, vertex_core_number, offsets, nbhr_pointer,  
