@@ -1,7 +1,6 @@
 #include <Device/Util/Timer.cuh>
 #include "Static/KCore/CoreNumbers.cuh"
 #include <fstream>
-#include <set>
 
 #include <nvToolsExt.h>
 
@@ -570,6 +569,7 @@ void KCore::run() {
         int batch_size = 0;
 
         forAllVertices(hornet, GetPointersAndDegrees { nbhr_pointer, deg });
+        std::cout << "Initialized Vertex Pointers" << std::endl;
 
         max_clique_heuristic(hornet, hd_data, vertex_frontier, load_balancing,
                              vertex_pres, vertex_core_number, offsets, nbhr_pointer,  
