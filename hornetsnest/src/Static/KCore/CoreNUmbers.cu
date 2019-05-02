@@ -512,8 +512,9 @@ void KCore::run() {
     forAllnumV(hornet, [=] __device__ (int i){ deg[i] = 0; } );
     forAllnumV(hornet, [=] __device__ (int i){ color[i] = 0; } );
     forAllnumV(hornet, [=] __device__ (int i){ offsets[i] = 0; } );
-    // forAllnumV(hornet, [=] __device__ (int i){ nbhr_pointer[i] = 0; } );
+    forAllnumV(hornet, [=] __device__ (int i){ nbhr_pointer[i] = **0; } );
     forAllnumE(hornet, [=] __device__ (int i){ clique_edges[i] = false; } );
+    
 
     Timer<DEVICE> TM;
     Timer<DEVICE> Tclique;
