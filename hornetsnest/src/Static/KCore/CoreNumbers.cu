@@ -42,7 +42,7 @@ KCore::~KCore() { // Deconstructor, frees up all GPU memory used by algorithm
     gpu::free(hd_data().dst);
     gpu::free(edge_in_clique);
     gpu::free(vertex_nbhr_offsets);
-    gpu::free(device_clique_size)
+    gpu::free(device_clique_size);
 }
 
 
@@ -241,7 +241,7 @@ struct GetLocalClique{
                 edge_in_clique[offset + i - length_v] = true;
                 curr_size += 1;
                 printf("Adding vertex to clique \n");
-                atomicMax(&device_clique_size, curr_size);
+                atomicMax(device_clique_size, curr_size);
                 if (v_id < 100000) printf("Vertex added!\n");
             }
             if (v_id < 100000) printf("Finished last if statement");
@@ -471,8 +471,8 @@ void max_clique_heuristic(HornetGraph &hornet,
     int *batch_size){
 
     // // uint32_t curr_peel =  *peel;
-    // uint32_t clique_size = 0;
-    // clique_size++;
+    uint32_t clique_size = 0;
+    clique_size++;
     // while (vertex_frontier.size() == 0){
         std::cout << "Peel: " << *peel << std::endl;
         forAllVertices(hornet, FixedCoreNumVertices{ core_number, *peel, vertex_frontier });   
@@ -483,7 +483,7 @@ void max_clique_heuristic(HornetGraph &hornet,
         if (vertex_frontier.size() > 0) {
             // Get clique numbers of vertices of frontier core number
             forAllVertices(hornet, vertex_frontier, GetLocalClique { core_number, vertex_nbhr_offsets, edge_in_clique, vertex_nbhr_pointer, vertex_degree, device_clique_size });
-            cudaMemcpy(&max_clique_size, hd().counter, sizeof(int), cudaMemcpyDeviceToHost);
+            cudaMemcpy(&clique_size, hd().counter, sizeof(int), cudaMemcpyDeviceToHost);
 
             // Remove vertices without sufficiently high core number 
             // uint32_t *curr_max = clique_size; 
