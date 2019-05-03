@@ -211,7 +211,7 @@ struct GetLocalClique{
             bool is_clique = true;
             bool found = false;
             for (vid_t j = 0; j < length_v; j++){
-                if (v_id < 100000) printf("Starting inner loop iteration %d of %d \n", j, length_v);
+                if (v_id < 1000) printf("Starting inner loop iteration %d of %d \n", j, length_v);
                 
                 found = false;
                 
