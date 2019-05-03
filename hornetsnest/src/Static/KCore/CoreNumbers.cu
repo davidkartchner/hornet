@@ -216,7 +216,7 @@ struct GetLocalClique{
                 found = false;
                 
                 if (edge_in_clique[offset - length_v + j]){
-                    printf("entering first if statement \n");
+                    // printf("entering first if statement \n");
                     vid_t w_id = vNeighPtr[j];
 
                     // Check if 
@@ -233,18 +233,18 @@ struct GetLocalClique{
                 }
                 // if (v_id < 100000) printf("Ended first iteration\n");
             }
-            if (v_id < 100000) printf("Finished loops: is_clique = %d and found = %d \n", is_clique, found);
+            // if (v_id < 100000) printf("Finished loops: is_clique = %d and found = %d \n", is_clique, found);
             // Check if nbhrs with coreness >= max_clique_size are part of a clique
             // If so, increment clique size
             if (is_clique){
                 
                 edge_in_clique[offset + i - length_v] = true;
                 curr_size += 1;
-                printf("Adding vertex to clique \n");
+                // printf("Adding vertex to clique \n");
                 atomicMax(device_clique_size, curr_size);
-                if (v_id < 100000) printf("Vertex added!\n");
+                // if (v_id < 100000) printf("Vertex added!\n");
             }
-            if (v_id < 100000) printf("Finished last if statement");
+            // if (v_id < 100000) printf("Finished last if statement");
         }
     }
 };
