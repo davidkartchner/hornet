@@ -29,7 +29,7 @@ KCore::KCore(HornetGraph &hornet) : // Constructor
     gpu::allocate(hd_data().counter, 1);
     gpu::allocate(edge_in_clique,    hornet.nE());
     gpu::allocate(vertex_nbhr_offsets,    hornet.nV());
-    // gpu::allocate(max_clique_size, 1);
+    gpu::allocate(device_clique_size, 1);
 }
 
 KCore::~KCore() { // Deconstructor, frees up all GPU memory used by algorithm
@@ -42,6 +42,7 @@ KCore::~KCore() { // Deconstructor, frees up all GPU memory used by algorithm
     gpu::free(hd_data().dst);
     gpu::free(edge_in_clique);
     gpu::free(vertex_nbhr_offsets);
+    gpu::free(device_clique_size)
 }
 
 
@@ -178,7 +179,7 @@ struct GetLocalClique{
     bool *edge_in_clique;
     vid_t **vertex_nbhr_pointer;
     vid_t *deg;
-    uint32_t max_clique_size;
+    uint32_t *device_clique_size;
 
 
     OPERATOR(Vertex &v){
@@ -240,7 +241,7 @@ struct GetLocalClique{
                 edge_in_clique[offset + i - length_v] = true;
                 curr_size += 1;
                 printf("Adding vertex to clique \n");
-                atomicMax(&max_clique_size, curr_size);
+                atomicMax(&device_clique_size, curr_size);
                 if (v_id < 100000) printf("Vertex added!\n");
             }
             if (v_id < 100000) printf("Finished last if statement");
@@ -464,13 +465,14 @@ void max_clique_heuristic(HornetGraph &hornet,
     vid_t **vertex_nbhr_pointer,
     vid_t *vertex_degree,
     bool *edge_in_clique,
+    uint32_t *device_clique_size,
     uint32_t *max_clique_size, 
     uint32_t *peel,
     int *batch_size){
 
-    // uint32_t curr_peel =  *peel;
-    uint32_t clique_size = 0;
-    clique_size++;
+    // // uint32_t curr_peel =  *peel;
+    // uint32_t clique_size = 0;
+    // clique_size++;
     // while (vertex_frontier.size() == 0){
         std::cout << "Peel: " << *peel << std::endl;
         forAllVertices(hornet, FixedCoreNumVertices{ core_number, *peel, vertex_frontier });   
@@ -480,7 +482,8 @@ void max_clique_heuristic(HornetGraph &hornet,
 
         if (vertex_frontier.size() > 0) {
             // Get clique numbers of vertices of frontier core number
-            forAllVertices(hornet, vertex_frontier, GetLocalClique { core_number, vertex_nbhr_offsets, edge_in_clique, vertex_nbhr_pointer, vertex_degree, clique_size });
+            forAllVertices(hornet, vertex_frontier, GetLocalClique { core_number, vertex_nbhr_offsets, edge_in_clique, vertex_nbhr_pointer, vertex_degree, device_clique_size });
+            cudaMemcpy(&max_clique_size, hd().counter, sizeof(int), cudaMemcpyDeviceToHost);
 
             // Remove vertices without sufficiently high core number 
             // uint32_t *curr_max = clique_size; 
@@ -491,6 +494,7 @@ void max_clique_heuristic(HornetGraph &hornet,
     // }
     int size = 0;
     cudaMemcpy(&size, hd().counter, sizeof(int), cudaMemcpyDeviceToHost);
+    
     *batch_size = size;
     *max_clique_size = clique_size;
     // std::cout << "Max Clique Found: " << max_clique_size << std::endl;
@@ -517,6 +521,7 @@ void KCore::run() {
     auto offsets = vertex_nbhr_offsets;
     vid_t** nbhr_pointer = vertex_nbhr_pointer;
     auto clique_edges = edge_in_clique;
+    auto temp_clique_size = device_clique_size;
     
     
     // What does this do?
@@ -563,7 +568,7 @@ void KCore::run() {
     uint32_t peel = 0;
     uint32_t max_clique_size = 0;
     max_clique_size++;
-    uint32_t temp_clique_size;
+    // uint32_t temp_clique_size;
     get_core_numbers(hornet, peel_vqueue, active_queue, iter_queue, 
         load_balancing, deg, vertex_pres, core_number, &peel);
     gpu::memsetZero(hd_data().counter);
@@ -588,12 +593,14 @@ void KCore::run() {
 
         max_clique_heuristic(hornet, hd_data, vertex_frontier, load_balancing,
                              vertex_pres, vertex_core_number, offsets, nbhr_pointer,  
-                             deg, clique_edges, &temp_clique_size, &peel, &batch_size);
+                             deg, clique_edges, temp_clique_size, &max_clique_size, &peel, &batch_size);
 
-        // atomicMax(&max_clique_size, temp_clique_size);
-        if (temp_clique_size > max_clique_size) {
-            max_clique_size = temp_clique_size;
-        }
+        cudaMemcpy(&max_clique_size, temp_clique_size, sizeof(int), cudaMemcpyDeviceToHost);
+
+        // // atomicMax(&max_clique_size, temp_clique_size);
+        // if (temp_clique_size > max_clique_size) {
+        //     max_clique_size = temp_clique_size;
+        // }
         std::cout << "Current Max Clique: " << max_clique_size << "\n";
 
         oper_bidirect_batch(hornet, hd_data().src, hd_data().dst, batch_size, DELETE);

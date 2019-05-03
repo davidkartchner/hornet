@@ -47,6 +47,7 @@ private:
     uint32_t *vertex_core_number { nullptr };
     int *vertex_nbhr_offsets { nullptr };
     bool *edge_in_clique { nullptr };
+    uint32_t *device_clique_size { nullptr };
 
     uint32_t *max_clique_size { nullptr };
 };
