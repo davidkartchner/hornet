@@ -601,15 +601,15 @@ void KCore::run() {
         // if (temp_clique_size > max_clique_size) {
         //     max_clique_size = temp_clique_size;
         // }
-        std::cout << "Current Max Clique: " << max_clique_size << "\n";
+        std::cout << "CurrentMaxClique: " << max_clique_size << "\n";
 
         oper_bidirect_batch(hornet, hd_data().src, hd_data().dst, batch_size, DELETE);
         gpu::memsetZero(hd_data().counter);
         peel--;
     }
     Tclique.stop();
-    Tclique.print("Clique Heuristic");
-    std::cout << "Max Clique Found: " << max_clique_size << std::endl;
+    Tclique.print("CliqueHeuristic");
+    std::cout << "MaxCliqueFound: " << max_clique_size << std::endl;
 }
 
 void KCore::release() {
