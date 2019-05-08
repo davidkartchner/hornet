@@ -1,6 +1,7 @@
 #include <Device/Util/Timer.cuh>
 #include "Static/KCore/CoreNumbers.cuh"
 #include <fstream>
+#include <chrono> 
 
 #include <nvToolsExt.h>
 
@@ -207,7 +208,7 @@ struct GetLocalClique{
             // printf("after pointer assignment\n");
 
             // Loop through neibhbors of v currently in clique and check to see if also nbhrs of u
-            #pragma omp parallel for
+            // #pragma omp parallel for
             bool is_clique = true;
             bool found = false;
             for (vid_t j = 0; j < length_v; j++){
@@ -221,7 +222,7 @@ struct GetLocalClique{
                     vid_t w_id = vNeighPtr[j];
 
                     // Check if 
-                    #pragma omp parallel for
+                    // #pragma omp parallel for
                     for (vid_t k = 0; k < length_u; k++){
                         if (uNeighPtr[k] == w_id){
                             found = true;
@@ -587,6 +588,7 @@ void KCore::run() {
     
     Tclique.start();
     // Begin actual clique heuristic algorithm
+    int iter = 1;
     while (peel >= max_clique_size) {
         int batch_size = 0;
 
@@ -594,10 +596,13 @@ void KCore::run() {
         forAllVertices(hornet, GetPointersAndDegrees { nbhr_pointer, deg });
         // forAllVertices(hornet, InitializeOffsets { offsets, hd_data });
         // std::cout << "Initialized Vertex Pointers" << std::endl;
-
+        auto start = std::chrono::high_resolution_clock::now();
         max_clique_heuristic(hornet, hd_data, vertex_frontier, load_balancing,
                              vertex_pres, vertex_core_number, offsets, nbhr_pointer,  
                              deg, clique_edges, temp_clique_size, &max_clique_size, &peel, &batch_size);
+        auto finish = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = finish - start;
+        printf("Iteration %d: %d seconds \n", iter, elapsed.count());
 
         cudaMemcpy(&max_clique_size, temp_clique_size, sizeof(int), cudaMemcpyDeviceToHost);
 
@@ -612,6 +617,7 @@ void KCore::run() {
         }
         
         peel--;
+        iter++;
     }
     Tclique.stop();
     Tclique.print("CliqueHeuristic");
