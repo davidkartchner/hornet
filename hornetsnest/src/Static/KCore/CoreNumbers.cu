@@ -523,7 +523,8 @@ void KCore::run() {
     auto offsets = vertex_nbhr_offsets;
     vid_t** nbhr_pointer = vertex_nbhr_pointer;
     auto clique_edges = edge_in_clique;
-    auto temp_clique_size = device_clique_size;
+    uint32_t* temp_clique_size = device_clique_size;
+    gpu::memsetZero(temp_clique_size);
     
     
     // What does this do?
