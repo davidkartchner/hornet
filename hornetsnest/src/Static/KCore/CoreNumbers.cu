@@ -485,7 +485,7 @@ void max_clique_heuristic(HornetGraph &hornet,
         if (vertex_frontier.size() > 0) {
             // Get clique numbers of vertices of frontier core number
             forAllVertices(hornet, vertex_frontier, GetLocalClique { core_number, vertex_nbhr_offsets, edge_in_clique, vertex_nbhr_pointer, vertex_degree, device_clique_size });
-            cudaMemcpy(&clique_size, hd().counter, sizeof(int), cudaMemcpyDeviceToHost);
+            
 
             // Remove vertices without sufficiently high core number 
             // uint32_t *curr_max = clique_size; 
@@ -496,6 +496,7 @@ void max_clique_heuristic(HornetGraph &hornet,
     // }
     int size = 0;
     cudaMemcpy(&size, hd().counter, sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&clique_size, hd().counter, sizeof(int), cudaMemcpyDeviceToHost);
     
     *batch_size = size;
     *max_clique_size = clique_size;
