@@ -211,7 +211,7 @@ struct GetLocalClique{
             bool is_clique = true;
             bool found = false;
             for (vid_t j = 0; j < length_v; j++){
-                if (j < 0 || j >= 100000 || length_v < 0 || length_v > 100000) printf("Starting inner loop iteration %d of %d \n", j, length_v);
+                // if (j < 0 || j >= 100000 || length_v < 0 || length_v > 100000) printf("Starting inner loop iteration %d of %d \n", j, length_v);
                 // if (j < 0 || j >= 100000) printf("Starting inner loop iteration %d of %d \n", j, length_v);
                 
                 found = false;
@@ -476,11 +476,11 @@ void max_clique_heuristic(HornetGraph &hornet,
     uint32_t clique_size = 0;
     clique_size++;
     // while (vertex_frontier.size() == 0){
-        std::cout << "Peel: " << *peel << std::endl;
+        // std::cout << "Peel: " << *peel << std::endl;
         forAllVertices(hornet, FixedCoreNumVertices{ core_number, *peel, vertex_frontier });   
-        std::cout << "Vertex Frontier Size before swap: " << vertex_frontier.size() << std::endl;     
+        // std::cout << "Vertex Frontier Size before swap: " << vertex_frontier.size() << std::endl;     
         vertex_frontier.swap();
-        std::cout << "Vertex Frontier Size after swap: " << vertex_frontier.size() << std::endl;   
+        // std::cout << "Vertex Frontier Size after swap: " << vertex_frontier.size() << std::endl;   
 
         if (vertex_frontier.size() > 0) {
             // Get clique numbers of vertices of frontier core number
@@ -605,7 +605,7 @@ void KCore::run() {
         // if (temp_clique_size > max_clique_size) {
         //     max_clique_size = temp_clique_size;
         // }
-        std::cout << "CurrentMaxClique: " << max_clique_size << "\n";
+        // std::cout << "CurrentMaxClique: " << max_clique_size << "\n";
         if (batch_size > 0){
             oper_bidirect_batch(hornet, hd_data().src, hd_data().dst, batch_size, DELETE);
             gpu::memsetZero(hd_data().counter);
