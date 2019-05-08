@@ -207,20 +207,21 @@ struct GetLocalClique{
             // printf("after pointer assignment\n");
 
             // Loop through neibhbors of v currently in clique and check to see if also nbhrs of u
-            #pragma omp parallel for
+            // #pragma omp parallel for
             bool is_clique = true;
             bool found = false;
             for (vid_t j = 0; j < length_v; j++){
-                // if (v_id < 1000) printf("Starting inner loop iteration %d of %d \n", j, length_v);
+                if (j < 0 || j >= 100000 || length_v < 0 || length_v > 100000) printf("Starting inner loop iteration %d of %d \n", j, length_v);
+                // if (j < 0 || j >= 100000) printf("Starting inner loop iteration %d of %d \n", j, length_v);
                 
                 found = false;
                 
                 if (edge_in_clique[offset - length_v + j]){
-                    // printf("entering first if statement \n");
+                    printf("Offset: %d", offset - length_v + j);
                     vid_t w_id = vNeighPtr[j];
 
                     // Check if 
-                    #pragma omp parallel for
+                    // #pragma omp parallel for
                     for (vid_t k = 0; k < length_u; k++){
                         if (uNeighPtr[k] == w_id){
                             found = true;
