@@ -602,7 +602,8 @@ void KCore::run() {
                              deg, clique_edges, temp_clique_size, &max_clique_size, &peel, &batch_size);
         auto finish = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = finish - start;
-        printf("Iteration %d: %d seconds \n", iter, elapsed.count());
+        // printf("Iteration %d: %d seconds \n", iter, elapsed.count());
+        std::cout << "Iteration " << iter << ": " << elapsed.count() << "s. \n"; 
 
         cudaMemcpy(&max_clique_size, temp_clique_size, sizeof(int), cudaMemcpyDeviceToHost);
 
