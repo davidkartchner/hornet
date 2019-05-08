@@ -604,9 +604,11 @@ void KCore::run() {
         //     max_clique_size = temp_clique_size;
         // }
         std::cout << "CurrentMaxClique: " << max_clique_size << "\n";
-
-        oper_bidirect_batch(hornet, hd_data().src, hd_data().dst, batch_size, DELETE);
-        gpu::memsetZero(hd_data().counter);
+        if (batch_size > 0){
+            oper_bidirect_batch(hornet, hd_data().src, hd_data().dst, batch_size, DELETE);
+            gpu::memsetZero(hd_data().counter);
+        }
+        
         peel--;
     }
     Tclique.stop();
