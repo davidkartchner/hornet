@@ -217,7 +217,7 @@ struct GetLocalClique{
                 found = false;
                 
                 if (edge_in_clique[offset - length_v + j]){
-                    printf("Offset: %d \n", offset - length_v + j);
+                    // printf("Offset: %d \n", offset - length_v + j);
                     vid_t w_id = vNeighPtr[j];
 
                     // Check if 
