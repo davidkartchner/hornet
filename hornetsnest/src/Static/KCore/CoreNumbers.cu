@@ -203,8 +203,8 @@ struct GetLocalClique{
             vid_t* uNeighPtr = vertex_nbhr_pointer[u_id];
             vid_t length_u = deg[u_id];
 
-            // Ignore this vertex if
-            if (length_u < (vid_t)device_clique_size) continue;
+            // Ignore this vertex if core number is too low
+            // if (length_u < (vid_t)device_clique_size) continue;
 
             // Loop through neibhbors of v currently in clique and check to see if also nbhrs of u
             // #pragma omp parallel for
@@ -215,7 +215,7 @@ struct GetLocalClique{
                 
                 if (edge_in_clique[offset - length_v + j]){
                     vid_t w_id = vNeighPtr[j];
-                    if (deg[w_id] < (vid_t)device_clique_size) continue;
+                    // if (deg[w_id] < (vid_t)device_clique_size) continue;
 
                     // #pragma omp parallel for
                     for (vid_t k = 0; k < length_u; k++){
@@ -595,7 +595,7 @@ void KCore::run() {
         auto finish = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = finish - start;
         // printf("Iteration %d: %d seconds \n", iter, elapsed.count());
-        // std::cout << "Iteration " << iter << ": " << elapsed.count() << "s. \n"; 
+        std::cout << "Iteration " << iter << ": " << elapsed.count() << "s. \n"; 
 
         cudaMemcpy(&max_clique_size, temp_clique_size, sizeof(int), cudaMemcpyDeviceToHost);
 
