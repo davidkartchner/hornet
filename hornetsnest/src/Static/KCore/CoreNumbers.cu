@@ -588,14 +588,13 @@ void KCore::run() {
         forAllVertices(hornet, GetPointersAndDegrees { nbhr_pointer, deg });
         // forAllVertices(hornet, InitializeOffsets { offsets, hd_data });
         // std::cout << "Initialized Vertex Pointers" << std::endl;
-        auto start = std::chrono::high_resolution_clock::now();
+        // auto start = std::chrono::high_resolution_clock::now();
         max_clique_heuristic(hornet, hd_data, vertex_frontier, load_balancing,
                              vertex_pres, vertex_core_number, offsets, nbhr_pointer,  
                              deg, clique_edges, temp_clique_size, &max_clique_size, &peel, &batch_size);
-        auto finish = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> elapsed = finish - start;
-        // printf("Iteration %d: %d seconds \n", iter, elapsed.count());
-        std::cout << "Iteration " << iter << ": " << elapsed.count() << "s. \n"; 
+        // auto finish = std::chrono::high_resolution_clock::now();
+        // std::chrono::duration<double> elapsed = finish - start;
+        // std::cout << "Iteration " << iter << ": " << elapsed.count() << "s. \n"; 
 
         cudaMemcpy(&max_clique_size, temp_clique_size, sizeof(int), cudaMemcpyDeviceToHost);
 
