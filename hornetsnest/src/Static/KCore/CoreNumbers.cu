@@ -197,31 +197,26 @@ struct GetLocalClique{
         vid_t v_id = v.id();
         vid_t length_v = deg[v_id];
         int offset = vertex_nbhr_offsets[v_id];
-        // printf("Offset: %d \n", offset);
         for (vid_t i = 0; i < length_v; i++){
             vid_t u_id = vNeighPtr[i]; 
-            // Vertex u = hornet.vertex(u_id); // How can I get this?
-            // printf( "before pointer assignment" );
             // Get nbhr info for u
             vid_t* uNeighPtr = vertex_nbhr_pointer[u_id];
             vid_t length_u = deg[u_id];
-            // printf("after pointer assignment\n");
+
+            // Ignore this vertex if
+            if (length_u < device_clique_size) continue;
 
             // Loop through neibhbors of v currently in clique and check to see if also nbhrs of u
             // #pragma omp parallel for
             bool is_clique = true;
             bool found = false;
             for (vid_t j = 0; j < length_v; j++){
-                // if (j < 0 || j >= 100000 || length_v < 0 || length_v > 100000) printf("Starting inner loop iteration %d of %d \n", j, length_v);
-                // if (j < 0 || j >= 100000) printf("Starting inner loop iteration %d of %d \n", j, length_v);
-                
                 found = false;
                 
                 if (edge_in_clique[offset - length_v + j]){
-                    // printf("Offset: %d \n", offset - length_v + j);
                     vid_t w_id = vNeighPtr[j];
+                    if (deg[w_id] < device_clique_size) continue;
 
-                    // Check if 
                     // #pragma omp parallel for
                     for (vid_t k = 0; k < length_u; k++){
                         if (uNeighPtr[k] == w_id){
@@ -234,9 +229,7 @@ struct GetLocalClique{
                         break;
                     }
                 }
-                // if (v_id < 100000) printf("Ended first iteration\n");
             }
-            // if (v_id < 100000) printf("Finished loops: is_clique = %d and found = %d \n", is_clique, found);
             // Check if nbhrs with coreness >= max_clique_size are part of a clique
             // If so, increment clique size
             if (is_clique){
@@ -247,7 +240,6 @@ struct GetLocalClique{
                 atomicMax(device_clique_size, curr_size);
                 // if (v_id < 100000) printf("Vertex added!\n");
             }
-            // if (v_id < 100000) printf("Finished last if statement");
         }
     }
 };
