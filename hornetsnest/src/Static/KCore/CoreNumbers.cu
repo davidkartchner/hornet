@@ -204,7 +204,7 @@ struct GetLocalClique{
             vid_t length_u = deg[u_id];
 
             // Ignore this vertex if
-            if (length_u < device_clique_size) continue;
+            if (length_u < (vid_t)device_clique_size) continue;
 
             // Loop through neibhbors of v currently in clique and check to see if also nbhrs of u
             // #pragma omp parallel for
@@ -215,7 +215,7 @@ struct GetLocalClique{
                 
                 if (edge_in_clique[offset - length_v + j]){
                     vid_t w_id = vNeighPtr[j];
-                    if (deg[w_id] < device_clique_size) continue;
+                    if (deg[w_id] < (vid_t)device_clique_size) continue;
 
                     // #pragma omp parallel for
                     for (vid_t k = 0; k < length_u; k++){
